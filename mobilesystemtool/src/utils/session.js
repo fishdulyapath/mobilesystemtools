@@ -1,6 +1,6 @@
-const AUTH_KEY = 'smlstaff_auth'
-const POS_KEY = 'smlstaff_pos'
-const ERP_KEY = 'smlstaff_erp_option'
+const AUTH_KEY = 'mobiletools_auth'
+const POS_KEY = 'mobiletools_pos'
+const ERP_KEY = 'mobiletools_erp_option'
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
 
 export function saveSession(employee, loginTime, rememberMe) {

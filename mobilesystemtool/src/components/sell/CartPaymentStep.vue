@@ -13,10 +13,12 @@ import { getPassBookList, getCreditTypeList, getSaleAdvanceDepositBalance, saveT
 import { calcDiscountAmount } from '@/utils/discount'
 import { createTigerOrder, inquireTigerOrder, cancelTigerOrder, getTigerConfig, TIGER_MOCK } from '@/services/tigerService'
 import { generateUUID } from '@/utils/uuid'
+import { getSaleDocumentType } from '@/utils/saleDocumentTypes'
 
 const props = defineProps({
   basket: { type: Object, required: true },
   orderData: { type: Object, required: true },
+  documentType: { type: Object, default: null },
 })
 const emit = defineEmits(['back', 'complete'])
 
@@ -48,7 +50,10 @@ function stockIssueSummary(issues = []) {
 
 // ─── Sale type ───────────────────────────────────────────────────────────────
 
-const isCreditSale = computed(() => [0, 2].includes(Number(props.orderData.inquiry_type)))
+const activeDocumentType = computed(() => props.documentType || getSaleDocumentType(props.orderData.document_type))
+const requiresPayment = computed(() => activeDocumentType.value.requiresPayment !== false)
+const isCreditSale = computed(() => requiresPayment.value && [0, 2].includes(Number(props.orderData.inquiry_type)))
+const paymentTitle = computed(() => (requiresPayment.value ? 'รับชำระเงิน' : `บันทึก${activeDocumentType.value.label}`))
 
 const saleTypeLabel = computed(() => {
   const t = Number(props.orderData.inquiry_type)
@@ -114,6 +119,7 @@ const paymentTabs = computed(() => {
 })
 
 onMounted(async () => {
+  if (!requiresPayment.value) return
   const tasks = [getTigerConfig().then(c => { tigerEnabled.value = !!c.enabled })]
   if (!isCreditSale.value) {
     tasks.push(
@@ -417,24 +423,33 @@ onUnmounted(() => clearInterval(tigerPollInterval.value))
 // ─── Save ─────────────────────────────────────────────────────────────────────
 
 const canSave = computed(() =>
-  !saving.value && (isCreditSale.value || totalPaid.value + (roundedAmount.value || 0) >= totalDue.value)
+  !saving.value && (!requiresPayment.value || isCreditSale.value || totalPaid.value + (roundedAmount.value || 0) >= totalDue.value)
 )
 
 function buildSaveBody({ tigerPending = false } = {}) {
   const pos = posStore.selectedPos
   const now = new Date()
   // Tiger คือเงินสดที่รับผ่านเครื่อง — รวมเข้ากับ cash เพื่อให้ backend คิดเป็นเงินสด
-  const cashEntries = paymentEntries.value.filter(e => e.type === 'cash' || e.type === 'tiger')
-  const transfers = paymentEntries.value.filter(e => e.type === 'transfer')
-  const credits = paymentEntries.value.filter(e => e.type === 'credit')
-  const deposits = paymentEntries.value.filter(e => e.type === 'deposit')
+  const cashEntries = requiresPayment.value ? paymentEntries.value.filter(e => e.type === 'cash' || e.type === 'tiger') : []
+  const transfers = requiresPayment.value ? paymentEntries.value.filter(e => e.type === 'transfer') : []
+  const credits = requiresPayment.value ? paymentEntries.value.filter(e => e.type === 'credit') : []
+  const deposits = requiresPayment.value ? paymentEntries.value.filter(e => e.type === 'deposit') : []
+  const docFormatCode = activeDocumentType.value.docFormatCode
+    || props.orderData.doc_format_code
+    || props.basket.doc_format_code
+    || pos?.doc_format_code
+    || ''
 
   return {
+    document_type: activeDocumentType.value.key,
+    document_trans_flag: activeDocumentType.value.transFlag,
+    document_screen_code: activeDocumentType.value.screenCode,
+    document_requires_payment: activeDocumentType.value.requiresPayment,
     pos_id: posStore.posId,
     basket_id: props.basket.basket_id,
     doc_date: now.toISOString().slice(0, 10),
     doc_time: now.toTimeString().slice(0, 5),
-    doc_format_code: props.orderData.doc_format_code || props.basket.doc_format_code || pos?.doc_format_code || '',
+    doc_format_code: docFormatCode,
     form_code: props.orderData.form_code || props.basket.form_code || '',
     branch_code: pos?.branch_code || '',
     cust_code: props.orderData.cust_code || 'AR0269',
@@ -469,7 +484,7 @@ function buildSaveBody({ tigerPending = false } = {}) {
     tiger_ref2: tigerPending ? tigerRef2.value : '',
     tiger_amount: tigerPending ? tigerPayAmount.value : paymentEntries.value.filter(e => e.type === 'tiger').reduce((s, e) => s + e.amount, 0),
     wallet_amount: 0,
-    payment_detail: [
+    payment_detail: requiresPayment.value ? [
       ...transfers.map(e => ({
         pay_type: '0',
         pay_amount: e.amount,
@@ -495,11 +510,11 @@ function buildSaveBody({ tigerPending = false } = {}) {
         remark: e.details.type_label || '',
         charge: 0,
       })),
-    ],
+    ] : [],
     items: cartStore.items.map(item => {
       const fresh = props.orderData.fresh_prices[item.guid_code] || {}
       const unitPrice = Number(fresh.price ?? 0)
-      const discWord = fresh.default_discount || ''
+      const discWord = props.orderData.effective_item_discounts?.[item.guid_code] ?? fresh.default_discount ?? ''
       const { discount_amount, sum_amount } = calcDiscountAmount(unitPrice, item.qty, discWord)
       return {
         item_code: item.item_code,
@@ -568,11 +583,34 @@ async function saveTigerPending() {
     <!-- Header -->
     <div class="payment-header">
       <Button icon="pi pi-arrow-left" text rounded size="small" @click="emit('back')" aria-label="กลับ" />
-      <span class="header-title">รับชำระเงิน</span>
+      <span class="header-title">{{ paymentTitle }}</span>
     </div>
 
+    <template v-if="!requiresPayment">
+      <div class="credit-body">
+        <div class="credit-total-card">
+          <div class="credit-total-label">{{ activeDocumentType.label }}</div>
+          <div class="credit-total-value">{{ formatCurrency(totalDue) }}</div>
+          <div class="credit-badge">
+            <i :class="activeDocumentType.icon" />
+            {{ saleTypeLabel || 'เอกสารขาย' }}
+          </div>
+        </div>
+        <div class="credit-term-card">
+          <div>
+            <span>จำนวนวันเครดิต</span>
+            <strong>{{ Number(orderData.credit_day || 0) }} วัน</strong>
+          </div>
+          <div>
+            <span>วันที่เครดิต</span>
+            <strong>{{ formatCreditDate(orderData.credit_date) }}</strong>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- ─── ขายเชื่อ ─────────────────────────────────────────────────────── -->
-    <template v-if="isCreditSale">
+    <template v-else-if="isCreditSale">
       <div class="credit-body">
         <div class="credit-total-card">
           <div class="credit-total-label">ยอดที่ต้องชำระ</div>

@@ -15,7 +15,7 @@ Do not persist secrets in this skill. Ask the user for credentials or use creden
 ## Document Comparison
 
 - Compare sale headers in `ic_trans` by `doc_no`.
-- Staff-created document headers should have `ic_trans.creator_code = 'smlstaff'`. This value is sent by the `smlstaff-ubon` frontend because the backend service is shared; do not hard-code it in shared service routes or confuse it with employee/sale code fields.
+- MobileTools-created document headers should have `ic_trans.creator_code = 'mobiletools'`. This value is sent by the `smlstaff-ubon` frontend because the backend service is shared; do not hard-code it in shared service routes or confuse it with employee/sale code fields.
 - Compare sale rows in `ic_trans_detail` by `doc_no`, ordered by `line_number`.
 - For product sets, compare:
   - parent rows: `item_type`, `ref_guid`, `qty`, `price`, `sum_amount`, `ratio`

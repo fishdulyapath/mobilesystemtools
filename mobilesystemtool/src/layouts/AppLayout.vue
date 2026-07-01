@@ -105,7 +105,7 @@ function logout() {
     <!-- Mobile nav drawer -->
     <Drawer :visible="drawerOpen" position="left" :pt="{ root: { class: 'mobile-nav-drawer' } }" @update:visible="drawerOpen = $event">
       <template #header>
-        <span class="drawer-title">SML Staff</span>
+        <span class="drawer-title">MobileTools</span>
       </template>
       <!-- ข้อมูลผู้ใช้ + POS -->
       <div class="drawer-user-card">

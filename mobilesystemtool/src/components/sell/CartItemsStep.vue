@@ -11,8 +11,10 @@ import { productImageUrl } from '@/utils/imageUrls'
 
 const props = defineProps({
   basket: { type: Object, required: true },
+  documentTypes: { type: Array, default: () => [] },
+  selectedDocumentType: { type: Object, required: true },
 })
-const emit = defineEmits(['back', 'next'])
+const emit = defineEmits(['back', 'next', 'update:selectedDocumentType'])
 
 const cartStore = useCartStore()
 const cartKey = computed(() => `BASKET-${props.basket.basket_id}`)
@@ -27,11 +29,12 @@ const stockIssues = ref([])
 const stockCheckError = ref('')
 let qtyTimers = {}
 
+const requiresStockCheck = computed(() => props.selectedDocumentType?.requiresStock !== false)
 const hasStockIssues = computed(() => stockIssues.value.length > 0)
 const canGoNext = computed(() =>
   cartStore.items.length > 0
   && !stockChecking.value
-  && !hasStockIssues.value
+  && (!requiresStockCheck.value || !hasStockIssues.value)
 )
 
 const total = computed(() =>
@@ -49,6 +52,15 @@ watch(() => cartStore.items, (items) => {
 
 onMounted(async () => {
   await cartStore.fetchCart(cartKey.value)
+  await checkStock({ silent: true })
+})
+
+watch(() => props.selectedDocumentType?.key, async () => {
+  if (!requiresStockCheck.value) {
+    stockIssues.value = []
+    stockCheckError.value = ''
+    return
+  }
   await checkStock({ silent: true })
 })
 
@@ -82,6 +94,11 @@ function stockIssueText(issue) {
 }
 
 async function checkStock({ silent = false } = {}) {
+  if (!requiresStockCheck.value) {
+    stockIssues.value = []
+    stockCheckError.value = ''
+    return true
+  }
   if (cartStore.items.length === 0) {
     stockIssues.value = []
     stockCheckError.value = ''
@@ -121,6 +138,11 @@ async function goNext() {
   const stockOk = await checkStock({ silent: false })
   if (!stockOk) return
   emit('next')
+}
+
+function selectDocumentType(type) {
+  if (!type?.key || type.key === props.selectedDocumentType?.key) return
+  emit('update:selectedDocumentType', type.key)
 }
 
 function toggleRemark(guid_code) {
@@ -221,7 +243,21 @@ function onRemarkBlur(item, value) {
       </div>
 
       <template v-else>
-        <div v-if="stockIssues.length > 0" class="stock-warning-panel">
+        <div v-if="documentTypes.length > 1" class="document-type-group" role="group" aria-label="ประเภทเอกสาร">
+          <button
+            v-for="type in documentTypes"
+            :key="type.key"
+            type="button"
+            class="document-type-btn"
+            :class="{ 'document-type-active': selectedDocumentType.key === type.key }"
+            @click="selectDocumentType(type)"
+          >
+            <i :class="type.icon" />
+            <span>{{ type.label }}</span>
+          </button>
+        </div>
+
+        <div v-if="requiresStockCheck && stockIssues.length > 0" class="stock-warning-panel">
           <div class="stock-warning-head">
             <i class="pi pi-exclamation-triangle" />
             <div>
@@ -236,7 +272,7 @@ function onRemarkBlur(item, value) {
             </div>
           </div>
         </div>
-        <div v-else-if="stockCheckError" class="stock-check-error">
+        <div v-else-if="requiresStockCheck && stockCheckError" class="stock-check-error">
           <i class="pi pi-info-circle" />
           <span>{{ stockCheckError }} กรุณาลองตรวจสอบใหม่ก่อนดำเนินการต่อ</span>
         </div>
@@ -419,6 +455,40 @@ function onRemarkBlur(item, value) {
   border-radius: 8px;
   background: #fffbeb;
   color: #92400e;
+}
+
+.document-type-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.document-type-btn {
+  min-height: 2.35rem;
+  border: 1px solid var(--p-surface-border);
+  border-radius: 8px;
+  background: var(--p-surface-0, #fff);
+  color: var(--p-text-color-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.45rem 0.5rem;
+}
+
+.document-type-btn:hover {
+  border-color: var(--p-primary-color);
+  color: var(--p-primary-color);
+}
+
+.document-type-active {
+  border-color: var(--p-primary-color);
+  background: var(--p-primary-50, #eff6ff);
+  color: var(--p-primary-color);
 }
 
 .stock-check-error {

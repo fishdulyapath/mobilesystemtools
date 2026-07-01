@@ -16,6 +16,7 @@ import { productImageUrl } from "@/utils/imageUrls";
 const props = defineProps({
   basket: { type: Object, required: true },
   confirmedInfo: { type: Object, required: true },
+  documentType: { type: Object, required: true },
 });
 const emit = defineEmits(["back", "confirm"]);
 
@@ -44,6 +45,7 @@ function setChildQty(child, parent) {
   return Number(child.qty || 0) * Number(parent.qty || 0);
 }
 const discountWord = ref("");
+const itemDiscountWord = ref("");
 const loading = ref(false);
 const showTaxDetail = ref(false);
 const showErrorDialog = ref(false);
@@ -54,6 +56,7 @@ const stockIssues = ref([]);
 const stockCheckError = ref("");
 
 const freshPrices = ref({});
+const requiresStockCheck = computed(() => props.documentType?.requiresStock !== false);
 
 const rows = computed(() =>
   cartStore.items.map((i) => ({
@@ -65,7 +68,19 @@ const rows = computed(() =>
 function itemNet(r) {
   const fresh = r.fresh;
   if (!fresh || !fresh.success) return 0;
-  return calcDiscountAmount(Number(fresh.price ?? 0), Number(r.qty), fresh.default_discount).sum_amount;
+  return calcDiscountAmount(Number(fresh.price ?? 0), Number(r.qty), effectiveItemDiscount(r)).sum_amount;
+}
+
+function combineDiscountWords(...words) {
+  return words
+    .map((word) => String(word || "").trim())
+    .filter(Boolean)
+    .join(",");
+}
+
+function effectiveItemDiscount(row) {
+  const fresh = row?.fresh || freshPrices.value[row?.guid_code] || {};
+  return combineDiscountWords(fresh.default_discount, itemDiscountWord.value);
 }
 
 // tax_type ของสินค้า: 1 = ยกเว้นภาษี, อื่น ๆ = มี VAT
@@ -202,7 +217,7 @@ const canConfirm = computed(() =>
   && !retrying.value
   && !stockChecking.value
   && fetchErrorItems.value.length === 0
-  && stockIssues.value.length === 0
+  && (!requiresStockCheck.value || stockIssues.value.length === 0)
 );
 
 const erpVatRate = computed(() => Number(posStore.erpOption?.vat_rate ?? 7.0));
@@ -231,6 +246,11 @@ function stockIssueText(issue) {
 }
 
 async function checkStock({ silent = false } = {}) {
+  if (!requiresStockCheck.value) {
+    stockIssues.value = [];
+    stockCheckError.value = "";
+    return true;
+  }
   if (cartStore.items.length === 0) {
     stockIssues.value = [];
     stockCheckError.value = "";
@@ -330,6 +350,12 @@ function priceChanged(item) {
 function emitConfirm() {
   emit("confirm", {
     ...props.confirmedInfo,
+    document_type: props.documentType.key,
+    document_label: props.documentType.label,
+    document_trans_flag: props.documentType.transFlag,
+    document_screen_code: props.documentType.screenCode,
+    document_requires_payment: props.documentType.requiresPayment,
+    item_discount_word: itemDiscountWord.value,
     discount_word: discountWord.value,
     total_value: calcResult.value.totalValue,
     total_discount: calcResult.value.totalDiscount,
@@ -339,6 +365,7 @@ function emitConfirm() {
     total_except_vat: calcResult.value.totalExceptVat,
     total_amount: calcResult.value.totalAmount,
     fresh_prices: freshPrices.value,
+    effective_item_discounts: Object.fromEntries(rows.value.map((row) => [row.guid_code, effectiveItemDiscount(row)])),
   });
 }
 
@@ -404,11 +431,11 @@ async function confirmZeroPrice() {
 
     <div class="price-check-header">
       <Button icon="pi pi-arrow-left" text rounded size="small" @click="emit('back')" aria-label="กลับ" />
-      <span class="header-title">ตรวจสอบราคา & ส่วนลด</span>
+      <span class="header-title">ตรวจสอบราคา & ส่วนลด · {{ documentType.label }}</span>
     </div>
 
     <div class="price-check-body">
-      <div v-if="stockIssues.length > 0" class="stock-warning-panel">
+      <div v-if="requiresStockCheck && stockIssues.length > 0" class="stock-warning-panel">
         <div class="stock-warning-head">
           <i class="pi pi-exclamation-triangle" />
           <div>
@@ -423,7 +450,7 @@ async function confirmZeroPrice() {
           </div>
         </div>
       </div>
-      <div v-else-if="stockCheckError" class="stock-check-error">
+      <div v-else-if="requiresStockCheck && stockCheckError" class="stock-check-error">
         <i class="pi pi-info-circle" />
         <span>{{ stockCheckError }} กรุณาลองยืนยันอีกครั้งเพื่อตรวจสอบใหม่</span>
       </div>
@@ -479,7 +506,7 @@ async function confirmZeroPrice() {
               </template>
             </td>
             <td class="col-discount">
-              <span v-if="row.fresh?.default_discount" class="discount-tag">{{ row.fresh.default_discount }}</span>
+              <span v-if="effectiveItemDiscount(row)" class="discount-tag">{{ effectiveItemDiscount(row) }}</span>
               <span v-else class="discount-empty">-</span>
             </td>
             <td class="col-sum">
@@ -531,7 +558,7 @@ async function confirmZeroPrice() {
                     {{ formatCurrency(row.fresh?.price ?? 0) }}
                   </span>
                   <span class="card-qty"> × {{ row.qty }}</span>
-                  <span v-if="row.fresh?.default_discount" class="discount-tag">ลด {{ row.fresh.default_discount }}</span>
+                  <span v-if="effectiveItemDiscount(row)" class="discount-tag">ลด {{ effectiveItemDiscount(row) }}</span>
                 </template>
               </div>
             </div>
@@ -544,6 +571,10 @@ async function confirmZeroPrice() {
       <!-- ส่วนลด + ยอดรวม -->
       <div class="summary-block">
         <!-- ส่วนลด input -->
+        <div class="discount-row-input">
+          <span class="sum-label">ส่วนลดสินค้า</span>
+          <InputText v-model="itemDiscountWord" placeholder="เช่น 10%, 5" class="discount-input" size="small" />
+        </div>
         <div class="discount-row-input">
           <span class="sum-label">ส่วนลดท้ายบิล</span>
           <InputText v-model="discountWord" placeholder="เช่น 10%, 500, 10%,200" class="discount-input" size="small" />

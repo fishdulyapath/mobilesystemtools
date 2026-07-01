@@ -21,10 +21,10 @@ export default defineConfig(({ mode }) => {
           target: backendTarget,
           changeOrigin: true,
         },
-        '/smlstaffservice': {
+        '/mobiletoolsservice': {
           target: backendTarget,
           changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/smlstaffservice/, ''),
+          rewrite: (p) => p.replace(/^\/mobiletoolsservice/, ''),
         },
       },
     },

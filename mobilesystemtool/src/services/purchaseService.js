@@ -1,6 +1,6 @@
 import api from './api'
 
-const PROGRAM_CREATOR_CODE = 'smlstaff'
+const PROGRAM_CREATOR_CODE = 'mobiletools'
 
 export async function getPurchaseDocFormatList() {
   const { data } = await api.get('/getPurchaseDocFormatList')

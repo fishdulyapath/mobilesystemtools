@@ -1,6 +1,6 @@
 import api from './api'
 
-const PROGRAM_CREATOR_CODE = 'smlstaff'
+const PROGRAM_CREATOR_CODE = 'mobiletools'
 import { productImageGuidUrl, productImageUrl } from '@/utils/imageUrls'
 
 export function getProductImageUrl(item_code) {

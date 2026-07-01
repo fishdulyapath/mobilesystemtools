@@ -5,9 +5,46 @@ const { query, withTransaction } = require('../db');
 const { calcDiscount, calcVat } = require('../utils/vatHelper');
 const { validateSaleItemsStock } = require('../utils/cartStockValidator');
 const { getEmployeePermissions } = require('../utils/permissions');
+const { resolveDocumentNo } = require('../utils/docFormat');
 
 const uuidv4 = () => crypto.randomUUID();
 const SOLD_OUT_PURCHASE_INFO_PERMISSION = 'sold_out.purchase_info.view';
+const SALE_DOCUMENT_TYPES = {
+  sale: {
+    key: 'sale',
+    transFlag: 44,
+    screenCode: 'SI',
+    defaultDocFormatCode: '',
+    requiresStock: true,
+    requiresPayment: true,
+    detailCalcFlag: -1,
+  },
+  sale_order: {
+    key: 'sale_order',
+    transFlag: 36,
+    screenCode: 'SS',
+    defaultDocFormatCode: 'SO',
+    requiresStock: true,
+    requiresPayment: false,
+    detailCalcFlag: 1,
+  },
+  reserve_order: {
+    key: 'reserve_order',
+    transFlag: 34,
+    screenCode: 'SR',
+    defaultDocFormatCode: 'BS',
+    requiresStock: false,
+    requiresPayment: false,
+    detailCalcFlag: 1,
+  },
+};
+
+function resolveSaleDocumentType(value) {
+  const key = String(value || 'sale').trim();
+  if (key === 'order' || key === 'so') return SALE_DOCUMENT_TYPES.sale_order;
+  if (key === 'reserve' || key === 'booking' || key === 'bs') return SALE_DOCUMENT_TYPES.reserve_order;
+  return SALE_DOCUMENT_TYPES[key] || SALE_DOCUMENT_TYPES.sale;
+}
 
 function activeProductCondition(alias = 'd') {
   return `COALESCE(${alias}.is_hold_sale,0) <> 1 AND COALESCE(${alias}.is_hold_purchase,0) <> 1`;
@@ -687,6 +724,8 @@ async function handleSaveTrans(req, res, options = {}) {
     const shelf_code = obj.shelf_code || '';
     const remark = obj.remark || '';
     const basket_id = obj.basket_id || '';
+    const documentType = resolveSaleDocumentType(obj.document_type);
+    const transFlag = documentType.transFlag;
 
     const inquiry_type = obj.inquiry_type != null ? parseInt(obj.inquiry_type) : 1;
     const vat_type = obj.vat_type != null ? parseInt(obj.vat_type) : 1;
@@ -729,7 +768,7 @@ async function handleSaveTrans(req, res, options = {}) {
     if (!pos_id) return res.status(400).json({ success: false, msg: 'pos_id is required' });
     if (items.length === 0) return res.status(400).json({ success: false, msg: 'items is empty' });
     if (tiger_pending && !tiger_order_id) return res.status(400).json({ success: false, msg: 'tiger_order_id is required' });
-    if (roundMoney(obj.deposit_amount) > 0 && depositPayments.length === 0) {
+    if (documentType.requiresPayment && roundMoney(obj.deposit_amount) > 0 && depositPayments.length === 0) {
       return res.status(400).json({ success: false, msg: 'advance/deposit payment_detail is required' });
     }
 
@@ -774,18 +813,20 @@ async function handleSaveTrans(req, res, options = {}) {
     let doc_no;
     let promotion_count = 0;
     await withTransaction(async (client) => {
-      const cartKeyForStock = basket_id ? `BASKET-${basket_id}` : '';
-      const stockValidation = await validateSaleItemsStock(client, items, {
-        excludeCartKey: cartKeyForStock,
-      });
-      if (!stockValidation.is_valid) {
-        const error = new Error('SALE_STOCK_NOT_ENOUGH');
-        error.code = 'SALE_STOCK_NOT_ENOUGH';
-        error.stock_issues = stockValidation.stock_issues;
-        throw error;
+      if (documentType.requiresStock) {
+        const cartKeyForStock = basket_id ? `BASKET-${basket_id}` : '';
+        const stockValidation = await validateSaleItemsStock(client, items, {
+          excludeCartKey: cartKeyForStock,
+        });
+        if (!stockValidation.is_valid) {
+          const error = new Error('SALE_STOCK_NOT_ENOUGH');
+          error.code = 'SALE_STOCK_NOT_ENOUGH';
+          error.stock_issues = stockValidation.stock_issues;
+          throw error;
+        }
       }
 
-      if (basket_id && (!doc_format_code || !form_code)) {
+      if (basket_id && documentType.key === 'sale' && (!doc_format_code || !form_code)) {
         const basketDocRes = await client.query(
           `SELECT COALESCE(doc_format_code,'') AS doc_format_code,
                   COALESCE(form_code,'') AS form_code
@@ -799,13 +840,24 @@ async function handleSaveTrans(req, res, options = {}) {
       }
 
       // 1. Generate doc_no
-      const saleDoc = await resolveSaleDocNo(client, doc_format_code, 44);
+      const saleDoc = documentType.key === 'sale'
+        ? await resolveSaleDocNo(client, doc_format_code, transFlag)
+        : await resolveDocumentNo(client, {
+          screenCode: documentType.screenCode,
+          docFormatCode: doc_format_code || documentType.defaultDocFormatCode,
+          transFlag,
+          docDate: doc_date,
+        });
       doc_no = saleDoc.doc_no;
       doc_format_code = saleDoc.doc_format_code;
       form_code = form_code || saleDoc.form_code;
       const customerCredit = await resolveCustomerCredit(client, cust_code, doc_date, inquiry_type);
+      if (!documentType.requiresPayment && customerCredit.credit_day == null) {
+        customerCredit.credit_day = 0;
+        customerCredit.credit_date = doc_date;
+      }
 
-      if (depositPayments.length > 0) {
+      if (documentType.requiresPayment && depositPayments.length > 0) {
         const depositTotals = new Map();
         for (const row of depositPayments) {
           if (!row.trans_number) throw new Error('advance/deposit document number is required');
@@ -835,7 +887,7 @@ async function handleSaveTrans(req, res, options = {}) {
           total_amount,total_before_vat,total_except_vat,doc_time,doc_format_code,creator_code,sale_code,
           total_discount,discount_word,remark,send_type,send_sms,remark_3,remark_4,remark_5,pos_id,
           credit_day,credit_date
-        ) VALUES ($1,$2,2,44,$3::date,$4,$4,$3::date,$5,$6,$3::date,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,0,$21,$22,$23,$24,$25,$26,$27::date)`,
+        ) VALUES ($1,$2,2,${transFlag},$3::date,$4,$4,$3::date,$5,$6,$3::date,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,0,$21,$22,$23,$24,$25,$26,$27::date)`,
         [
           inquiry_type, vat_type,
           doc_date, doc_no,
@@ -851,52 +903,86 @@ async function handleSaveTrans(req, res, options = {}) {
       );
 
       // 3. INSERT cb_trans
-      await client.query(
-        `INSERT INTO cb_trans (
-          trans_type,trans_flag,doc_no,doc_date,doc_time,ap_ar_code,pay_type,doc_format_code,
-          total_amount,total_net_amount,cash_amount,tranfer_amount,card_amount,
-          total_amount_pay,total_credit_charge,wallet_amount,total_income_amount,
-          deposit_amount,pay_cash_amount,money_change
-        ) VALUES (2,44,$1,$2::date,$3,$4,1,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-        [
-          doc_no, doc_date, doc_time, cust_code, doc_format_code,
-          total_amount, total_net_amount_dbl,
-          cash_amount_in_db, tranfer_amount_dbl, card_with_charge,
-          total_amount_pay, total_credit_charge_dbl, wallet_amount_dbl,
-          total_income_amount, deposit_amount_dbl, cash_amount_raw, money_change,
-        ]
-      );
+      if (documentType.requiresPayment) {
+        await client.query(
+          `INSERT INTO cb_trans (
+            trans_type,trans_flag,doc_no,doc_date,doc_time,ap_ar_code,pay_type,doc_format_code,
+            total_amount,total_net_amount,cash_amount,tranfer_amount,card_amount,
+            total_amount_pay,total_credit_charge,wallet_amount,total_income_amount,
+            deposit_amount,pay_cash_amount,money_change
+          ) VALUES (2,${transFlag},$1,$2::date,$3,$4,1,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+          [
+            doc_no, doc_date, doc_time, cust_code, doc_format_code,
+            total_amount, total_net_amount_dbl,
+            cash_amount_in_db, tranfer_amount_dbl, card_with_charge,
+            total_amount_pay, total_credit_charge_dbl, wallet_amount_dbl,
+            total_income_amount, deposit_amount_dbl, cash_amount_raw, money_change,
+          ]
+        );
 
-      // 3.5 INSERT gl_journal_vat_sale (1 row ต่อเอกสาร — สำหรับรายงานภาษีขาย)
-      const arNameRow = await client.query(
-        'SELECT COALESCE(name_1, $2) AS name_1 FROM ar_customer WHERE code = $1 LIMIT 1',
-        [cust_code, '']
-      );
-      const ar_name = arNameRow.rows[0]?.name_1 || '';
-      const docDateObj = new Date(doc_date);
-      const vat_effective_period = docDateObj.getMonth() + 1;
-      const vat_effective_year = docDateObj.getFullYear() + 543;
-      await client.query(
-        `INSERT INTO gl_journal_vat_sale (
-          ignore_sync,is_lock_record,doc_date,doc_no,book_code,line_number,vat_number,
-          tax_group,description,base_caltax_amount,tax_rate,amount,except_tax_amount,
-          period_number,is_add,vat_date,trans_type,trans_flag,vat_effective_period,
-          ar_code,ar_name,vat_calc,vat_effective_year,branch_type,branch_code,tax_no,
-          manual_add,is_doc_copy,create_date_time_now,vat_type,
-          ref_vat_no,ref_vat_date,ref_doc_no,ref_doc_date
-        ) VALUES (0,0,$1::date,$2,'',0,$2,'','',$3,$4,$5,$6,0,0,$1::date,2,44,$7,
-          $8,$9,1,$10,0,$11,'',0,0,NOW(),0,'',NULL,'',NULL)`,
-        [
-          doc_date, doc_no,
-          before_vat, vat_rate, vat_value, total_except_vat_dbl,
-          vat_effective_period,
-          cust_code, ar_name,
-          vat_effective_year, branch_code,
-        ]
-      );
+        // 3.5 INSERT gl_journal_vat_sale (1 row ต่อเอกสาร — สำหรับรายงานภาษีขาย)
+        const arNameRow = await client.query(
+          'SELECT COALESCE(name_1, $2) AS name_1 FROM ar_customer WHERE code = $1 LIMIT 1',
+          [cust_code, '']
+        );
+        const ar_name = arNameRow.rows[0]?.name_1 || '';
+        const docDateObj = new Date(doc_date);
+        const vat_effective_period = docDateObj.getMonth() + 1;
+        const vat_effective_year = docDateObj.getFullYear() + 543;
+        await client.query(
+          `INSERT INTO gl_journal_vat_sale (
+            ignore_sync,is_lock_record,doc_date,doc_no,book_code,line_number,vat_number,
+            tax_group,description,base_caltax_amount,tax_rate,amount,except_tax_amount,
+            period_number,is_add,vat_date,trans_type,trans_flag,vat_effective_period,
+            ar_code,ar_name,vat_calc,vat_effective_year,branch_type,branch_code,tax_no,
+            manual_add,is_doc_copy,create_date_time_now,vat_type,
+            ref_vat_no,ref_vat_date,ref_doc_no,ref_doc_date
+          ) VALUES (0,0,$1::date,$2,'',0,$2,'','',$3,$4,$5,$6,0,0,$1::date,2,${transFlag},$7,
+            $8,$9,1,$10,0,$11,'',0,0,NOW(),0,'',NULL,'',NULL)`,
+          [
+            doc_date, doc_no,
+            before_vat, vat_rate, vat_value, total_except_vat_dbl,
+            vat_effective_period,
+            cust_code, ar_name,
+            vat_effective_year, branch_code,
+          ]
+        );
+      } else {
+        const shipmentCustomer = await client.query(
+          `SELECT COALESCE(name_1,'') AS name_1,
+                  COALESCE(address,'') AS address,
+                  COALESCE(telephone,'') AS telephone,
+                  COALESCE(tambon,'') AS tambon,
+                  COALESCE(amper,'') AS amper,
+                  COALESCE(province,'') AS province,
+                  COALESCE(zip_code,'') AS zipcode
+           FROM ar_customer
+           WHERE code = $1
+           LIMIT 1`,
+          [cust_code],
+        );
+        const ship = shipmentCustomer.rows[0] || {};
+        await client.query(
+          `INSERT INTO ic_trans_shipment (
+            doc_no,doc_date,trans_flag,cust_code,transport_name,transport_address,
+            transport_telephone,transport_tambon,transport_amper,transport_province,
+            remark,remark_2,latitude,longitude,zipcode
+          ) VALUES ($1,$2::date,${transFlag},$3,$4,$5,$6,$7,$8,$9,'','',0,0,$10)`,
+          [
+            doc_no, doc_date, cust_code,
+            ship.name_1 || '',
+            ship.address || '',
+            ship.telephone || '',
+            ship.tambon || '',
+            ship.amper || '',
+            ship.province || '',
+            ship.zipcode || '',
+          ],
+        );
+      }
 
       // 4. DELETE + INSERT ic_trans_detail
-      await client.query('DELETE FROM ic_trans_detail WHERE doc_no=$1', [doc_no]);
+      await client.query('DELETE FROM ic_trans_detail WHERE doc_no=$1 AND trans_flag=$2', [doc_no, transFlag]);
       const r2 = (v) => Math.round(v * 100) / 100;
       const calcLineVat = (sumAmount, price, taxType) => {
         if (taxType === 1) {
@@ -946,7 +1032,7 @@ async function handleSaveTrans(req, res, options = {}) {
             wh_code,shelf_code,stand_value,divide_value,ratio,doc_time,doc_date_calc,
             discount,discount_amount,barcode,calc_flag,
             tax_type,sum_amount_exclude_vat,total_vat_value,price_exclude_vat
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,2,44,$10::date,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$10::date,$27,$28,$29,$30,$31,$32,$33,$34)`,
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,2,${transFlag},$10::date,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$10::date,$27,$28,$29,$30,$31,$32,$33,$34)`,
           [
             setRefLine,
             parseFloat(setRefPrice || 0),
@@ -955,7 +1041,7 @@ async function handleSaveTrans(req, res, options = {}) {
             itemCodeMain,
             refGuid,
             parseFloat(priceSetRatio || 0),
-            1,
+            inquiry_type,
             vat_type,
             doc_date,
             doc_no,
@@ -977,7 +1063,7 @@ async function handleSaveTrans(req, res, options = {}) {
             discount,
             discountAmount,
             item.barcode || '',
-            -1,
+            documentType.detailCalcFlag,
             taxType,
             tax.sumExcludeVat,
             tax.vatValue,
@@ -1093,9 +1179,9 @@ async function handleSaveTrans(req, res, options = {}) {
             wh_code,shelf_code,stand_value,divide_value,ratio,doc_time,doc_date_calc,
             discount,discount_amount,barcode,calc_flag,
             tax_type,sum_amount_exclude_vat,total_vat_value,price_exclude_vat
-          ) VALUES ($1,$2,2,44,$3::date,$4,$5,$6,$7,$8,$9,$10,$11,$12,'',$13,$14,$15,$16,$17,$18,$3::date,$19,$20,$21,$22,$23,$24,$25,$26)`,
+          ) VALUES ($1,$2,2,${transFlag},$3::date,$4,$5,$6,$7,$8,$9,$10,$11,$12,'',$13,$14,$15,$16,$17,$18,$3::date,$19,$20,$21,$22,$23,$24,$25,$26)`,
           [
-            1, vat_type,
+            inquiry_type, vat_type,
             doc_date, doc_no, cust_code,
             it.item_code, it.item_name, it.unit_code,
             it_qty, it_price,
@@ -1109,8 +1195,8 @@ async function handleSaveTrans(req, res, options = {}) {
         );
       }
 
-      if (savePromotionDetails) {
-        await client.query('DELETE FROM ic_trans_detail_promotion WHERE doc_no=$1 AND trans_flag=44', [doc_no]);
+      if (savePromotionDetails && documentType.key === 'sale') {
+        await client.query(`DELETE FROM ic_trans_detail_promotion WHERE doc_no=$1 AND trans_flag=${transFlag}`, [doc_no]);
         for (let i = 0; i < promotionRows.length; i++) {
           const row = promotionRows[i] || {};
           const promotion_code = String(getPromotionValue(row, 'promotion_code', '_promotionCode', 'code') || '').trim();
@@ -1131,7 +1217,7 @@ async function handleSaveTrans(req, res, options = {}) {
           await client.query(
             `INSERT INTO ic_trans_detail_promotion (
               doc_no,doc_date,trans_flag,promotion_code,promotion_name,qty,price,sum_amount,line_number
-            ) VALUES ($1,$2::date,44,$3,$4,$5,$6,$7,$8)`,
+            ) VALUES ($1,$2::date,${transFlag},$3,$4,$5,$6,$7,$8)`,
             [doc_no, doc_date, promotion_code, promotion_name, qty, price, amount, Number.isFinite(lineNumber) ? lineNumber : detailLineNumber + i]
           );
           promotion_count++;
@@ -1139,64 +1225,66 @@ async function handleSaveTrans(req, res, options = {}) {
       }
 
       // 5. DELETE + INSERT cb_trans_detail
-      await client.query('DELETE FROM cb_trans_detail WHERE doc_no=$1', [doc_no]);
-      for (const p of payments) {
-        const pay_type = String(p.pay_type || '0');
-        const pay_amount = parseFloat(p.pay_amount || 0);
-        const trans_number = p.trans_number || '';
-        const charge = parseFloat(p.charge || 0);
-        const detail_doc_type = parseInt(p.doc_type || p.pay_type || 0, 10);
+      if (documentType.requiresPayment) {
+        await client.query('DELETE FROM cb_trans_detail WHERE doc_no=$1 AND trans_flag=$2', [doc_no, transFlag]);
+        for (const p of payments) {
+          const pay_type = String(p.pay_type || '0');
+          const pay_amount = parseFloat(p.pay_amount || 0);
+          const trans_number = p.trans_number || '';
+          const charge = parseFloat(p.charge || 0);
+          const detail_doc_type = parseInt(p.doc_type || p.pay_type || 0, 10);
 
-        if ((detail_doc_type === 5 || detail_doc_type === 6) && pay_amount > 0) {
-          await client.query(
-            `INSERT INTO cb_trans_detail (
-              trans_type,trans_flag,doc_no,doc_date,doc_time,trans_number,
-              amount,sum_amount,doc_type,ap_ar_code,ap_ar_type,remark
-            ) VALUES (2,$1,$2,$3::date,$4,$5,$6,$6,$7,$8,1,$9)`,
-            [
-              44, doc_no, doc_date, doc_time, trans_number,
-              pay_amount, detail_doc_type, cust_code,
-              p.remark || '',
-            ]
-          );
-        } else if (pay_type === '0') {
-          // โอน
-          const pb_bank_code = p.bank_code || 'KBANK';
-          const pb_bank_branch = p.bank_branch || 'KBANK2';
-          const transfer_date = /^\d{4}-\d{2}-\d{2}$/.test(String(p.transfer_date || p.chq_due_date || ''))
-            ? String(p.transfer_date || p.chq_due_date)
-            : doc_date;
-          await client.query(
-            `INSERT INTO cb_trans_detail (
-              trans_type,trans_flag,doc_no,doc_date,doc_time,trans_number,
-              bank_code,bank_branch,amount,sum_amount,doc_type,ap_ar_code,
-              chq_due_date,trans_number_type,ap_ar_type
-            ) VALUES (2,$1,$2,$3::date,$4,$5,$6,$7,$8,$8,'1',$9,$10::date,0,0)`,
-            [44, doc_no, doc_date, doc_time, trans_number, pb_bank_code, pb_bank_branch, pay_amount, cust_code, transfer_date]
-          );
-        } else if (pay_type === '21') {
-          // บัตรเครดิต
-          const cc_type = p.credit_card_type || 'NONE';
-          const sum_amt = pay_amount + charge;
-          await client.query(
-            `INSERT INTO cb_trans_detail (
-              trans_type,trans_flag,doc_no,doc_date,doc_time,trans_number,
-              credit_card_type,amount,sum_amount,doc_type,ap_ar_code,
-              trans_number_type,ap_ar_type,charge,ref1,no_approved
-            ) VALUES (2,$1,$2,$3::date,$4,$5,$6,$7,$8,'21',$9,1,1,$10,$2,$11)`,
-            [44, doc_no, doc_date, doc_time, trans_number, cc_type, pay_amount, sum_amt, cust_code, charge, p.no_approved || '']
-          );
-        } else {
-          // wallet 
-          const sum_amt = pay_amount + charge;
-          await client.query(
-            `INSERT INTO cb_trans_detail (
-              trans_type,trans_flag,doc_no,doc_date,doc_time,trans_number,
-              credit_card_type,amount,sum_amount,doc_type,ap_ar_code,
-              trans_number_type,ap_ar_type,charge
-            ) VALUES (2,$1,$2,$3::date,$4,$5,'WC',$6,$7,'3',$8,1,1,$9)`,
-            [44, doc_no, doc_date, doc_time, trans_number, pay_amount, sum_amt, cust_code, charge]
-          );
+          if ((detail_doc_type === 5 || detail_doc_type === 6) && pay_amount > 0) {
+            await client.query(
+              `INSERT INTO cb_trans_detail (
+                trans_type,trans_flag,doc_no,doc_date,doc_time,trans_number,
+                amount,sum_amount,doc_type,ap_ar_code,ap_ar_type,remark
+              ) VALUES (2,$1,$2,$3::date,$4,$5,$6,$6,$7,$8,1,$9)`,
+              [
+                transFlag, doc_no, doc_date, doc_time, trans_number,
+                pay_amount, detail_doc_type, cust_code,
+                p.remark || '',
+              ]
+            );
+          } else if (pay_type === '0') {
+            // โอน
+            const pb_bank_code = p.bank_code || 'KBANK';
+            const pb_bank_branch = p.bank_branch || 'KBANK2';
+            const transfer_date = /^\d{4}-\d{2}-\d{2}$/.test(String(p.transfer_date || p.chq_due_date || ''))
+              ? String(p.transfer_date || p.chq_due_date)
+              : doc_date;
+            await client.query(
+              `INSERT INTO cb_trans_detail (
+                trans_type,trans_flag,doc_no,doc_date,doc_time,trans_number,
+                bank_code,bank_branch,amount,sum_amount,doc_type,ap_ar_code,
+                chq_due_date,trans_number_type,ap_ar_type
+              ) VALUES (2,$1,$2,$3::date,$4,$5,$6,$7,$8,$8,'1',$9,$10::date,0,0)`,
+              [transFlag, doc_no, doc_date, doc_time, trans_number, pb_bank_code, pb_bank_branch, pay_amount, cust_code, transfer_date]
+            );
+          } else if (pay_type === '21') {
+            // บัตรเครดิต
+            const cc_type = p.credit_card_type || 'NONE';
+            const sum_amt = pay_amount + charge;
+            await client.query(
+              `INSERT INTO cb_trans_detail (
+                trans_type,trans_flag,doc_no,doc_date,doc_time,trans_number,
+                credit_card_type,amount,sum_amount,doc_type,ap_ar_code,
+                trans_number_type,ap_ar_type,charge,ref1,no_approved
+              ) VALUES (2,$1,$2,$3::date,$4,$5,$6,$7,$8,'21',$9,1,1,$10,$2,$11)`,
+              [transFlag, doc_no, doc_date, doc_time, trans_number, cc_type, pay_amount, sum_amt, cust_code, charge, p.no_approved || '']
+            );
+          } else {
+            // wallet
+            const sum_amt = pay_amount + charge;
+            await client.query(
+              `INSERT INTO cb_trans_detail (
+                trans_type,trans_flag,doc_no,doc_date,doc_time,trans_number,
+                credit_card_type,amount,sum_amount,doc_type,ap_ar_code,
+                trans_number_type,ap_ar_type,charge
+              ) VALUES (2,$1,$2,$3::date,$4,$5,'WC',$6,$7,'3',$8,1,1,$9)`,
+              [transFlag, doc_no, doc_date, doc_time, trans_number, pay_amount, sum_amt, cust_code, charge]
+            );
+          }
         }
       }
 
@@ -1220,16 +1308,20 @@ async function handleSaveTrans(req, res, options = {}) {
       }
 
       // 7. Queue IC process for sold items
-      await client.query(
-        `INSERT INTO process (process_name, wherein)
-         SELECT 'IC', item_code FROM ic_trans_detail WHERE doc_no = $1 AND trans_flag = 44`,
-        [doc_no]
-      );
+      if (documentType.requiresPayment) {
+        await client.query(
+          `INSERT INTO process (process_name, wherein)
+           SELECT 'IC', item_code FROM ic_trans_detail WHERE doc_no = $1 AND trans_flag = ${transFlag}`,
+          [doc_no]
+        );
+      }
     });
 
     return res.json({
       success: true,
       doc_no,
+      document_type: documentType.key,
+      trans_flag: transFlag,
       doc_format_code,
       form_code,
       promotion_count,

@@ -48,7 +48,7 @@ function toggleMenu(event) {
       <button class="hamburger" aria-label="เมนู" @click="emit('menu-click')">
         <i class="pi pi-bars" />
       </button>
-      <span class="topbar-brand">SML Staff</span>
+      <span class="topbar-brand">MobileTools</span>
     </div>
 
     <div class="topbar-right">

@@ -41,7 +41,7 @@ async function handleLogin() {
     <template #header>
       <div class="login-header">
         <i class="pi pi-chart-bar login-logo" />
-        <h2 class="login-title">SMLStaff</h2>
+        <h2 class="login-title">MobileTools</h2>
         <p class="login-subtitle">ระบบช่วยขาย</p>
       </div>
     </template>

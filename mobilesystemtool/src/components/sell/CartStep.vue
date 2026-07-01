@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Checkbox from 'primevue/checkbox'
@@ -15,6 +15,7 @@ import { useCartStore } from '@/stores/cart'
 import { setBasketInfo } from '@/services/basketService'
 import { deleteDocImage, getDocImageUrl, getDocImagesList, saveDocImage } from '@/services/docImageService'
 import { getSalePrintForms, getSalePrintUrl } from '@/services/salesService'
+import { getEnabledSaleDocumentTypes, getSaleDocumentType } from '@/utils/saleDocumentTypes'
 
 const props = defineProps({
   basket: { type: Object, required: true },
@@ -26,6 +27,9 @@ const authStore = useAuthStore()
 const toast = useToast()
 const subStep = ref('items')
 const currentBasket = ref({ ...props.basket })
+const documentTypes = getEnabledSaleDocumentTypes()
+const selectedDocumentTypeKey = ref(documentTypes[0]?.key || 'sale')
+const selectedDocumentType = computed(() => getSaleDocumentType(selectedDocumentTypeKey.value))
 
 const confirmedInfo = ref(null)
 const orderData = ref(null)
@@ -212,6 +216,9 @@ async function removeDocImage(guidCode) {
   <CartItemsStep
     v-if="subStep === 'items'"
     :basket="currentBasket"
+    :document-types="documentTypes"
+    :selected-document-type="selectedDocumentType"
+    @update:selected-document-type="selectedDocumentTypeKey = $event"
     @back="emit('back')"
     @next="onItemsNext"
   />
@@ -226,6 +233,7 @@ async function removeDocImage(guidCode) {
     v-else-if="subStep === 'price-check'"
     :basket="currentBasket"
     :confirmed-info="confirmedInfo"
+    :document-type="selectedDocumentType"
     @back="onPriceCheckBack"
     @confirm="onPriceCheckConfirm"
   />
@@ -233,6 +241,7 @@ async function removeDocImage(guidCode) {
     v-else-if="subStep === 'payment'"
     :basket="currentBasket"
     :order-data="orderData"
+    :document-type="selectedDocumentType"
     @back="subStep = 'price-check'"
     @complete="onPaymentComplete"
   />

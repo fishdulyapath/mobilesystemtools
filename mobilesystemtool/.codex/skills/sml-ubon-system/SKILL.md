@@ -40,7 +40,7 @@ Use this skill to continue work on the Ubon SML staff/frontend and marketplace E
 
 - Sales save from staff goes through `/service/v1/saveTrans` and `/service/v1/saveTransAndPro` in `pos.js`.
 - Sales details are written to `ic_trans_detail`.
-- Documents created by the staff program should store `ic_trans.creator_code = 'smlstaff'`, but the shared backend service must not hard-code that value. The `smlstaff-ubon` frontend sends `creator_code: 'smlstaff'`; backend routes persist the received `creator_code`. Keep employee fields such as `sale_code`, `emp_code`, `last_editor_code`, logs, and permission checks as the real staff/user code. For PU display/print, use `user_request` as the staff code instead of `creator_code`.
+- Documents created by the rebranded MobileTools program should store `ic_trans.creator_code = 'mobiletools'`, but the shared backend service must not hard-code that value. The `smlstaff-ubon` frontend now sends `creator_code: 'mobiletools'`; backend routes persist the received `creator_code`. Keep employee fields such as `sale_code`, `emp_code`, `last_editor_code`, logs, and permission checks as the real staff/user code. For PU display/print, use `user_request` as the staff code instead of `creator_code`.
 - Product sets use a parent row with `item_type = 3` and a generated `ref_guid`.
 - Product-set child rows point to the parent with `set_ref_line = parent.ref_guid`, store `item_code_main`, and keep `price_set_ratio` separate from `ratio`.
 - To match the main system, sale detail `ratio` should be stored as `0` for normal items, product-set parent rows, and product-set child rows. Do not use frontend `item.ratio` for persisted sale details.
