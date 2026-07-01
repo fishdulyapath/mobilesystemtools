@@ -1,0 +1,7 @@
+interface:
+  display_name: "SML Ubon System"
+  short_description: "Work on SML Ubon staff/backend flows."
+  default_prompt: "Use $sml-ubon-system when working on the Ubon SML staff app or Express backend."
+
+policy:
+  allow_implicit_invocation: true
