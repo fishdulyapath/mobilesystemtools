@@ -1,7 +1,7 @@
 services:
-  mstservice:
-    image: minorsoft/mstservice:latest
-    container_name: mstservice
+  mobiletoolsservice:
+    image: minorsoft/mobiletoolsservice:latest
+    container_name: mobiletoolsservice
     restart: always
     expose:
       - "47300"
@@ -14,7 +14,7 @@ services:
       DB_IMAGES_NAME: ${DB_IMAGES_NAME}
       PORT: 47300
     networks:
-      - mst_net
+      - mobiletools_net
       - sml_service_network
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:47300/health"]
@@ -28,15 +28,15 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  mstapp:
-    image: minorsoft/mstapp:latest
-    container_name: mstapp
+  mobiletools:
+    image: minorsoft/mobiletools:latest
+    container_name: mobiletools
     restart: always
     depends_on:
-      mstservice:
+      mobiletoolsservice:
         condition: service_healthy
     networks:
-      - mst_net
+      - mobiletools_net
     logging:
       driver: "json-file"
       options:
@@ -52,10 +52,10 @@ services:
     volumes:
       - ./nginx-mst.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - mstapp
-      - mstservice
+      - mobiletools
+      - mobiletoolsservice
     networks:
-      - mst_net
+      - mobiletools_net
     logging:
       driver: "json-file"
       options:
@@ -63,7 +63,7 @@ services:
         max-file: "3"
 
 networks:
-  mst_net:
+  mobiletools_net:
     driver: bridge
   sml_service_network:
     external: true

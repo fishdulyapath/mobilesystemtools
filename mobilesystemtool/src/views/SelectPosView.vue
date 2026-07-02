@@ -60,12 +60,27 @@ async function selectPos(pos) {
     selecting.value = false
   }
 }
+
+function logout() {
+  authStore.logout()
+  posStore.clearPos()
+  router.push('/login')
+}
 </script>
 
 <template>
   <Card class="pos-card">
     <template #header>
       <div class="pos-header">
+        <Button
+          class="pos-logout-btn"
+          icon="pi pi-sign-out"
+          label="ออกจากระบบ"
+          text
+          severity="secondary"
+          size="small"
+          @click="logout"
+        />
         <div class="pos-icon">
           <img src="/fishsoft-icons/fishsoft-icon-192x192.png" alt="" />
         </div>
@@ -146,12 +161,19 @@ async function selectPos(pos) {
 }
 
 .pos-header {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 2rem 1rem 0.75rem;
   gap: 0.25rem;
   background: linear-gradient(180deg, #eff8ff, #ffffff);
+}
+
+.pos-logout-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
 }
 
 .pos-icon {
