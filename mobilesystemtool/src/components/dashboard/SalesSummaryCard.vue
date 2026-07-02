@@ -132,7 +132,8 @@ defineExpose({ loadTodaySales })
   align-items: center;
   gap: 0.5rem;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 800;
+  color: var(--app-blue-ink);
 }
 
 .summary-content {
@@ -158,7 +159,8 @@ defineExpose({ loadTodaySales })
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  background: var(--p-surface-ground);
+  background: #f1f9ff;
+  border: 1px solid var(--app-blue-line);
   border-radius: 8px;
   padding: 0.625rem 1rem;
   flex: 1;
@@ -222,7 +224,7 @@ defineExpose({ loadTodaySales })
 }
 
 .recent-item:hover {
-  background: var(--p-surface-hover);
+  background: var(--app-blue-soft);
 }
 
 .recent-left {

@@ -4,7 +4,7 @@ import { usePosStore } from '@/stores/pos'
 import { PERMISSIONS } from '@/utils/permissions'
 
 const routes = [
-  { path: '/', redirect: '/dashboard' },
+  { path: '/', redirect: '/sell' },
   {
     path: '/login',
     name: 'Login',
@@ -23,20 +23,28 @@ const routes = [
     component: () => import('@/views/DashboardView.vue'),
     meta: { requiresAuth: true, requiresPos: true, layout: 'AppLayout' },
   },
-  { path: '/sales-history', redirect: '/sales-history/cash' },
   {
-    path: '/sales-history/cash',
-    name: 'SalesHistoryCash',
+    path: '/sales-history',
+    name: 'SalesHistory',
     component: () => import('@/views/SalesHistoryView.vue'),
-    props: { saleKind: 'cash', title: 'ประวัติการขายเงินสด' },
-    meta: { requiresAuth: true, requiresPos: true, permission: PERMISSIONS.salesCashView, layout: 'AppLayout' },
+    props: { documentType: 'sale', title: 'ประวัติการขาย' },
+    meta: { requiresAuth: true, requiresPos: true, anyPermissions: [PERMISSIONS.salesCashView, PERMISSIONS.salesCreditView], layout: 'AppLayout' },
+  },
+  { path: '/sales-history/cash', redirect: { path: '/sales-history', query: { sale_kind: 'cash' } } },
+  { path: '/sales-history/credit', redirect: { path: '/sales-history', query: { sale_kind: 'credit' } } },
+  {
+    path: '/sales-history/reserve-order',
+    name: 'ReserveOrderHistory',
+    component: () => import('@/views/SalesHistoryView.vue'),
+    props: { documentType: 'reserve_order', title: 'ประวัติใบสั่งซื้อ-สั่งจอง' },
+    meta: { requiresAuth: true, requiresPos: true, permission: PERMISSIONS.sellView, layout: 'AppLayout' },
   },
   {
-    path: '/sales-history/credit',
-    name: 'SalesHistoryCredit',
+    path: '/sales-history/sale-order',
+    name: 'SaleOrderHistory',
     component: () => import('@/views/SalesHistoryView.vue'),
-    props: { saleKind: 'credit', title: 'ประวัติการขายเงินเชื่อ' },
-    meta: { requiresAuth: true, requiresPos: true, permission: PERMISSIONS.salesCreditView, layout: 'AppLayout' },
+    props: { documentType: 'sale_order', title: 'ประวัติใบสั่งขาย' },
+    meta: { requiresAuth: true, requiresPos: true, permission: PERMISSIONS.sellView, layout: 'AppLayout' },
   },
   {
     path: '/sales-history/by-product',
@@ -191,31 +199,22 @@ function routeRequiresPos(name) {
   return routes.find((route) => route.name === name)?.meta?.requiresPos === true
 }
 
+function canAccessRouteCandidate(authStore, item) {
+  if (item.anyPermissions) return item.anyPermissions.some((permission) => authStore.hasPermission(permission))
+  return authStore.hasPermission(item.permission)
+}
+
 function firstAllowedRouteForPos(authStore, hasPos) {
   const candidates = [
-    { name: 'Dashboard' },
     { name: 'Sell', permission: PERMISSIONS.sellView },
+    { name: 'SalesHistory', anyPermissions: [PERMISSIONS.salesCashView, PERMISSIONS.salesCreditView] },
+    { name: 'ReserveOrderHistory', permission: PERMISSIONS.sellView },
+    { name: 'SaleOrderHistory', permission: PERMISSIONS.sellView },
     { name: 'Inventory', permission: PERMISSIONS.inventoryView },
-    { name: 'SalesHistoryCash', permission: PERMISSIONS.salesCashView },
-    { name: 'SalesHistoryCredit', permission: PERMISSIONS.salesCreditView },
-    { name: 'ProductSaleHistory', permission: PERMISSIONS.salesProductHistoryView },
-    { name: 'SalesReturn', permission: PERMISSIONS.salesReturnView },
-    { name: 'AdvancePayment', permission: PERMISSIONS.salesAdvancePaymentView },
-    { name: 'AdvancePaymentHistory', permission: PERMISSIONS.salesAdvancePaymentHistoryView },
-    { name: 'ArBilling', permission: PERMISSIONS.salesArBillingView },
-    { name: 'ArBillingHistory', permission: PERMISSIONS.salesArBillingView },
-    { name: 'ArDebtPayment', permission: PERMISSIONS.salesArDebtPaymentView },
-    { name: 'ArDebtPaymentHistory', permission: PERMISSIONS.salesArDebtPaymentHistoryView },
-    { name: 'OtherExpense', permission: PERMISSIONS.cashOtherExpenseCreate },
-    { name: 'OtherExpenseHistory', permission: PERMISSIONS.cashOtherExpenseView },
-    { name: 'SoldOut', permission: PERMISSIONS.soldOutView },
-    { name: 'PurchaseStockReorder', permission: PERMISSIONS.purchaseStockReorderView },
-    { name: 'PurchasePU', permission: PERMISSIONS.purchasePuView },
-    { name: 'ProductManage', permission: PERMISSIONS.productView },
     { name: 'PermissionManage', permission: PERMISSIONS.permissionManage },
   ]
   return candidates.find((item) =>
-    authStore.hasPermission(item.permission) && (hasPos || !routeRequiresPos(item.name))
+    canAccessRouteCandidate(authStore, item) && (hasPos || !routeRequiresPos(item.name))
   ) || (hasPos ? { name: 'Dashboard' } : { name: 'SelectPos' })
 }
 
@@ -234,6 +233,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.permission && !authStore.hasPermission(to.meta.permission)) {
+    return firstAllowedRouteForPos(authStore, posStore.hasPos)
+  }
+
+  if (to.meta.anyPermissions && !to.meta.anyPermissions.some((permission) => authStore.hasPermission(permission))) {
     return firstAllowedRouteForPos(authStore, posStore.hasPos)
   }
 

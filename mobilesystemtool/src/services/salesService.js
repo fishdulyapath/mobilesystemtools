@@ -27,9 +27,9 @@ export async function getDashboardSoldOut(filters = '') {
   return data.data || []
 }
 
-export async function getDocSaleHistory({ search = '', from_date = '', to_date = '', sale_kind = '' } = {}) {
+export async function getDocSaleHistory({ search = '', from_date = '', to_date = '', sale_kind = '', document_type = '' } = {}) {
   const { data } = await api.get('/getDocSaleHistory', {
-    params: { search, from_date, to_date, sale_kind },
+    params: { search, from_date, to_date, sale_kind, document_type },
   })
   return data.data || []
 }
@@ -41,8 +41,8 @@ export async function getProductSaleHistory({ search = '', from_date = '', to_da
   return data.data || []
 }
 
-export async function getDocSaleHistoryDetail(doc_no) {
-  const { data } = await api.get('/getDocSaleHistoryDetail', { params: { doc_no } })
+export async function getDocSaleHistoryDetail(doc_no, trans_flag = '', document_type = '') {
+  const { data } = await api.get('/getDocSaleHistoryDetail', { params: { doc_no, trans_flag, document_type } })
   return data.data || null
 }
 

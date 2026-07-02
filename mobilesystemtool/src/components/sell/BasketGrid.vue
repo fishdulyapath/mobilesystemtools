@@ -109,6 +109,9 @@ onMounted(loadBaskets)
   flex-direction: column;
   overflow: hidden;
   padding: 1rem;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(14, 165, 233, 0.09), transparent 28rem),
+    linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
 }
 
 .basket-grid-header {
@@ -121,6 +124,7 @@ onMounted(loadBaskets)
 .basket-grid-title {
   font-size: 1.1rem;
   font-weight: 600;
+  color: var(--app-blue-ink, #075985);
 }
 
 .basket-filter-bar {
@@ -128,6 +132,11 @@ onMounted(loadBaskets)
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+  padding: 0.65rem;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .search-wrap {
@@ -158,18 +167,24 @@ onMounted(loadBaskets)
   flex: 1;
   padding: 0.3rem 0.5rem;
   border-radius: 8px;
-  border: 1px solid var(--p-surface-border);
-  background: transparent;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #ffffff;
   font-size: 0.8125rem;
   cursor: pointer;
   color: var(--p-text-color-secondary);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.status-tab:hover {
+  color: var(--p-primary-color);
+  background: var(--app-blue-soft, #eaf7ff);
 }
 
 .status-tab.active {
-  background: var(--p-primary-color);
+  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
   color: #fff;
   border-color: var(--p-primary-color);
+  box-shadow: 0 8px 18px rgba(2, 120, 184, 0.18);
 }
 
 .basket-loading {
@@ -194,19 +209,21 @@ onMounted(loadBaskets)
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-radius: 12px;
+  border-radius: 8px;
   /* padding: 1rem 0.75rem; */
   min-height: 180px;
-  border: 2px solid transparent;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
-  background: none;
+  transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s, background 0.1s;
+  background: #ffffff;
   font-family: inherit;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .basket-cell:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  border-color: var(--p-primary-color);
+  box-shadow: var(--app-shadow-card, 0 14px 34px rgba(2, 132, 199, 0.13));
 }
 
 .basket-cell:active {
@@ -214,15 +231,15 @@ onMounted(loadBaskets)
 }
 
 .basket-cell--empty {
-  background: var(--surface-100, #f8f9fa);
-  border-color: var(--surface-300, #dee2e6);
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
+  border-color: var(--app-blue-line, #c7e7fa);
   color: var(--text-color-secondary, #6c757d);
 }
 
 .basket-cell--active {
-  background: #fff3e0;
-  border-color: #fb8c00;
-  color: #e65100;
+  background: linear-gradient(180deg, #dff3ff 0%, #ffffff 100%);
+  border-color: var(--p-primary-color);
+  color: var(--app-blue-ink, #075985);
 }
 
 .basket-number {
@@ -255,8 +272,8 @@ onMounted(loadBaskets)
   max-width: 100%;
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
-  background: rgba(234, 88, 12, 0.12);
-  color: #9a3412;
+  background: #e0f2fe;
+  color: #075985;
   font-size: 0.75rem;
   font-weight: 700;
   overflow: hidden;
@@ -270,6 +287,10 @@ onMounted(loadBaskets)
 }
 
 @media (max-width: 480px) {
+  .basket-grid-view {
+    padding: 0.75rem;
+  }
+
   .basket-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.6rem;

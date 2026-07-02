@@ -66,7 +66,9 @@ async function selectPos(pos) {
   <Card class="pos-card">
     <template #header>
       <div class="pos-header">
-        <i class="pi pi-desktop pos-icon" />
+        <div class="pos-icon">
+          <img src="/fishsoft-icons/fishsoft-icon-192x192.png" alt="" />
+        </div>
         <h2 class="pos-title">{{ isChanging ? 'เปลี่ยนเครื่อง POS' : 'เลือกเครื่อง POS' }}</h2>
         <p class="pos-subtitle">สวัสดี {{ authStore.employee?.user_name }}</p>
       </div>
@@ -122,7 +124,7 @@ async function selectPos(pos) {
             <Button
               :label="posStore.selectedPos?.pos_id === pos.pos_id ? 'ใช้งานอยู่' : 'เลือก'"
               :icon="posStore.selectedPos?.pos_id === pos.pos_id ? 'pi pi-check' : ''"
-              :severity="posStore.selectedPos?.pos_id === pos.pos_id ? 'success' : 'primary'"
+              severity="primary"
               size="small"
               :loading="selecting"
               @click.stop="selectPos(pos)"
@@ -138,19 +140,35 @@ async function selectPos(pos) {
 .pos-card {
   width: 100%;
   max-width: 480px;
+  overflow: hidden;
+  border-color: rgba(2, 120, 184, 0.22);
+  box-shadow: var(--app-shadow-float);
 }
 
 .pos-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem 1rem 0.5rem;
+  padding: 2rem 1rem 0.75rem;
   gap: 0.25rem;
+  background: linear-gradient(180deg, #eff8ff, #ffffff);
 }
 
 .pos-icon {
-  font-size: 2.5rem;
-  color: var(--p-primary-color);
+  width: 4rem;
+  height: 4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid var(--app-blue-line);
+  box-shadow: 0 10px 24px rgba(2, 120, 184, 0.14);
+}
+
+.pos-icon img {
+  width: 3.45rem;
+  height: 3.45rem;
+  object-fit: contain;
 }
 
 .pos-title {
@@ -198,21 +216,23 @@ async function selectPos(pos) {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line);
   border-radius: 8px;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  background: #ffffff;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   gap: 0.75rem;
 }
 
 .pos-item:hover {
-  background: var(--p-surface-hover);
+  background: #f6fbff;
   border-color: var(--p-primary-300);
+  box-shadow: 0 8px 22px rgba(8, 47, 73, 0.08);
 }
 
 .pos-item--active {
   border-color: var(--p-primary-color);
-  background: var(--p-primary-50);
+  background: linear-gradient(90deg, #dff1ff, #ffffff);
 }
 
 .pos-item-main {
@@ -252,5 +272,29 @@ async function selectPos(pos) {
 
 .empty-icon {
   font-size: 2rem;
+}
+
+@media (max-width: 767px) {
+  .pos-card {
+    max-width: none;
+    align-self: center;
+  }
+
+  .pos-header {
+    padding-top: 1.5rem;
+  }
+
+  .pos-list-wrap {
+    max-height: min(58vh, 440px);
+  }
+
+  .pos-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pos-item :deep(.p-button) {
+    width: 100%;
+  }
 }
 </style>

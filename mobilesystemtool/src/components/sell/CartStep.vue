@@ -350,11 +350,20 @@ async function removeDocImage(guidCode) {
   align-items: center;
   gap: 0.75rem;
   text-align: center;
+  width: 100%;
+  max-width: 28rem;
+  padding: 1.25rem;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(14, 165, 233, 0.12), transparent 18rem),
+    linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
+  box-shadow: var(--app-shadow-card, 0 14px 34px rgba(2, 132, 199, 0.13));
 }
 
 .done-icon {
   font-size: 3.5rem;
-  color: #16a34a;
+  color: var(--p-primary-color);
 }
 
 .done-title {
@@ -385,13 +394,14 @@ async function removeDocImage(guidCode) {
 .proof-section {
   width: 100%;
   max-width: 28rem;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   padding: 0.875rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  background: var(--p-surface-0, #fff);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .proof-head {
@@ -418,7 +428,7 @@ async function removeDocImage(guidCode) {
   justify-content: center;
   gap: 0.4rem;
   border: 1px solid var(--p-primary-color);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0.45rem 0.75rem;
   color: var(--p-primary-color);
   font-size: 0.85rem;
@@ -430,6 +440,10 @@ async function removeDocImage(guidCode) {
 .proof-upload-btn.disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.proof-upload-btn:not(.disabled):hover {
+  background: var(--app-blue-soft, #eaf7ff);
 }
 
 .proof-upload-btn input {
@@ -457,10 +471,10 @@ async function removeDocImage(guidCode) {
 .proof-item {
   position: relative;
   aspect-ratio: 1;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   overflow: hidden;
-  background: var(--p-surface-ground);
+  background: #f5fbff;
 }
 
 .proof-item img {
@@ -489,7 +503,7 @@ async function removeDocImage(guidCode) {
 .proof-empty {
   text-align: center;
   color: var(--p-text-color-secondary);
-  border: 1px dashed var(--p-surface-border);
+  border: 1px dashed var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   padding: 1rem;
   font-size: 0.9rem;
@@ -523,9 +537,16 @@ async function removeDocImage(guidCode) {
   align-items: flex-start;
   gap: 0.625rem;
   padding: 0.65rem 0.75rem;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   cursor: pointer;
+  background: #ffffff;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.print-form-row:not(.disabled):hover {
+  border-color: var(--p-primary-color);
+  background: var(--app-blue-soft, #eaf7ff);
 }
 
 .print-form-row.disabled {

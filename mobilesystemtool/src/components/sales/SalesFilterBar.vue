@@ -131,9 +131,10 @@ defineExpose({ initialSearch: doSearch, resetFilters })
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem;
-  background: var(--p-surface-card);
+  background: linear-gradient(180deg, #ffffff, #f6fbff);
   border-radius: 8px;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line);
+  box-shadow: var(--app-shadow-sm);
 }
 
 .filter-top,
@@ -142,6 +143,17 @@ defineExpose({ initialSearch: doSearch, resetFilters })
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
+}
+
+.filter-top :deep(.p-selectbutton .p-button) {
+  border-color: var(--app-blue-line);
+}
+
+.filter-top :deep(.p-selectbutton .p-button.p-highlight),
+.filter-top :deep(.p-selectbutton .p-button[data-p-highlight="true"]) {
+  background: var(--p-primary-color);
+  border-color: var(--p-primary-color);
+  color: #ffffff;
 }
 
 .date-picker {
@@ -169,11 +181,12 @@ defineExpose({ initialSearch: doSearch, resetFilters })
   }
 
   .filter-top :deep(.p-selectbutton) {
-    flex: 1;
+    width: 100%;
     min-width: auto;
   }
 
   .filter-top :deep(.p-selectbutton .p-button) {
+    flex: 1;
     padding: 0.4rem 0.6rem;
     font-size: 0.8rem;
   }
@@ -199,7 +212,7 @@ defineExpose({ initialSearch: doSearch, resetFilters })
 
 @media (max-width: 480px) {
   .filter-bar {
-    padding: 0.5rem;
+    padding: 0.625rem;
   }
 
   .filter-top :deep(.p-selectbutton .p-button) {

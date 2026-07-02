@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import AppTopbar from "@/components/common/AppTopbar.vue";
@@ -17,42 +17,23 @@ const drawerOpen = ref(false);
 
 const navGroups = [
   {
-    title: "ภาพรวม",
+    title: "ตะกร้าสินค้า",
     items: [
-      { label: "แดชบอร์ด", icon: "pi pi-home", to: "/dashboard" },
+      { label: "ตะกร้าสินค้า", icon: "pi pi-shopping-cart", to: "/sell", permission: PERMISSIONS.sellView },
     ],
   },
   {
-    title: "บันทึก Transaction",
+    title: "ประวัติ",
     items: [
-      { label: "ขายสินค้า", icon: "pi pi-shopping-cart", to: "/sell", permission: PERMISSIONS.sellView },
-      { label: "ซื้อ/ตั้งหนี้", icon: "pi pi-file-import", to: "/purchase/pu", base: "/purchase/pu", permission: PERMISSIONS.purchasePuView },
-      { label: "รับคืนสินค้า/ลดหนี้", icon: "pi pi-undo", to: "/sales/return", permission: PERMISSIONS.salesReturnView },
-      { label: "รับเงินล่วงหน้า", icon: "pi pi-wallet", to: "/sales/advance-payment", permission: PERMISSIONS.salesAdvancePaymentView },
-      { label: "ใบวางบิล (ลูกหนี้)", icon: "pi pi-file-check", to: "/sales/ar-billing", permission: PERMISSIONS.salesArBillingView },
-      { label: "รับชำระหนี้/ใบเสร็จ", icon: "pi pi-receipt", to: "/sales/ar-debt-payment", permission: PERMISSIONS.salesArDebtPaymentView },
-      { label: "ค่าใช้จ่ายอื่นๆ", icon: "pi pi-receipt", to: "/cash/other-expense", permission: PERMISSIONS.cashOtherExpenseCreate },
+      { label: "ประวัติการขาย", icon: "pi pi-receipt", to: "/sales-history", anyPermissions: [PERMISSIONS.salesCashView, PERMISSIONS.salesCreditView] },
+      { label: "ประวัติใบสั่งซื้อ-สั่งจอง", icon: "pi pi-bookmark", to: "/sales-history/reserve-order", permission: PERMISSIONS.sellView },
+      { label: "ประวัติใบสั่งขาย", icon: "pi pi-file-edit", to: "/sales-history/sale-order", permission: PERMISSIONS.sellView },
     ],
   },
   {
-    title: "ประวัติ / รายงาน",
+    title: "จัดการคลัง",
     items: [
-      { label: "ประวัติขายเงินสด", icon: "pi pi-money-bill", to: "/sales-history/cash", permission: PERMISSIONS.salesCashView },
-      { label: "ประวัติขายเงินเชื่อ", icon: "pi pi-credit-card", to: "/sales-history/credit", permission: PERMISSIONS.salesCreditView },
-      { label: "ประวัติขายตามสินค้า", icon: "pi pi-list", to: "/sales-history/by-product", permission: PERMISSIONS.salesProductHistoryView },
-      { label: "สินค้าขายหมด", icon: "pi pi-exclamation-circle", to: "/sold-out", permission: PERMISSIONS.soldOutView },
-      { label: "ดูสต๊อกสินค้าเพื่อสั่งซื้อ", icon: "pi pi-list-check", to: "/purchase/stock-reorder", permission: PERMISSIONS.purchaseStockReorderView },
-      { label: "ประวัติรับเงินล่วงหน้า", icon: "pi pi-history", to: "/sales/advance-payment/history", permission: PERMISSIONS.salesAdvancePaymentHistoryView },
-      { label: "ประวัติใบวางบิล", icon: "pi pi-list", to: "/sales/ar-billing/history", permission: PERMISSIONS.salesArBillingView },
-      { label: "ประวัติรับชำระหนี้", icon: "pi pi-history", to: "/sales/ar-debt-payment/history", permission: PERMISSIONS.salesArDebtPaymentHistoryView },
-      { label: "ประวัติค่าใช้จ่ายอื่นๆ", icon: "pi pi-receipt", to: "/cash/other-expense/history", permission: PERMISSIONS.cashOtherExpenseView },
-    ],
-  },
-  {
-    title: "สินค้า / คลัง",
-    items: [
-      { label: "คลังสินค้า", icon: "pi pi-box", to: "/inventory", permission: PERMISSIONS.inventoryView },
-      { label: "จัดการสินค้า", icon: "pi pi-tag", to: "/products", base: "/products", permission: PERMISSIONS.productView },
+      { label: "จัดการคลัง", icon: "pi pi-box", to: "/inventory", permission: PERMISSIONS.inventoryView },
     ],
   },
   {
@@ -63,14 +44,44 @@ const navGroups = [
   },
 ];
 
+const activeMenuPaths = new Set([
+  "/sell",
+  "/sales-history",
+  "/sales-history/reserve-order",
+  "/sales-history/sale-order",
+  "/inventory",
+  "/permissions",
+]);
+
+const menuLabelOverrides = {
+  "/inventory": "จัดการคลัง",
+};
+
 const visibleNavGroups = computed(() =>
   navGroups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => authStore.hasPermission(item.permission)),
-    }))
+    .map((group) => normalizeMenuGroup(group, group.items
+      .filter((item) => activeMenuPaths.has(item.to))
+      .filter(canAccessMenuItem)
+      .map((item) => ({
+        ...item,
+        label: menuLabelOverrides[item.to] || item.label,
+      })),
+    ))
     .filter((group) => group.items.length > 0),
 );
+
+function normalizeMenuGroup(group, items) {
+  const firstPath = items[0]?.to || "";
+  if (firstPath === "/sell") return { ...group, title: "ตะกร้าสินค้า", items };
+  if (firstPath.startsWith("/sales-history")) return { ...group, title: "ประวัติ", items };
+  if (firstPath === "/inventory") return { ...group, title: "จัดการคลัง", items };
+  return { ...group, items };
+}
+
+function canAccessMenuItem(item) {
+  if (item.anyPermissions) return item.anyPermissions.some((permission) => authStore.hasPermission(permission));
+  return authStore.hasPermission(item.permission);
+}
 
 function navigate(to) {
   router.push(to);
@@ -159,6 +170,7 @@ function logout() {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  background: var(--app-shell);
 }
 
 .app-body {
@@ -193,6 +205,9 @@ function logout() {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  background:
+    radial-gradient(circle at top right, rgba(45, 179, 244, 0.10), transparent 28rem),
+    var(--app-shell);
 }
 
 @media (max-width: 767px) {
@@ -215,10 +230,13 @@ function logout() {
 }
 
 .drawer-user-card {
-  padding: 0.75rem 0.25rem;
+  padding: 0.875rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  border: 1px solid var(--app-blue-line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f1f9ff);
 }
 
 .drawer-user-row {
@@ -310,7 +328,7 @@ function logout() {
 
 .drawer-nav-group-title {
   padding: 0.5rem 1rem 0.25rem;
-  color: var(--p-text-color-secondary);
+  color: #49718e;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0;
@@ -335,11 +353,11 @@ function logout() {
 }
 
 .drawer-nav-item:hover {
-  background: var(--p-surface-hover);
+  background: var(--app-blue-soft);
 }
 
 .drawer-nav-item.active {
-  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
+  background: linear-gradient(90deg, #dff1ff, #eff8ff);
   color: var(--p-primary-color);
   font-weight: 600;
 }
@@ -365,3 +383,4 @@ function logout() {
   background: #fef2f2;
 }
 </style>
+

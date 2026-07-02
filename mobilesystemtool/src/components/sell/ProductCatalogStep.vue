@@ -430,13 +430,15 @@ async function openDetail(p) {
 .catalog-header {
   flex-shrink: 0;
   z-index: 10;
-  background-color: #ffffff;
-  background-color: var(--p-surface-0, #ffffff);
-  border-bottom: 1px solid var(--p-surface-border);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.12), transparent 24rem),
+    linear-gradient(180deg, #ffffff 0%, #f4fbff 100%);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
+  box-shadow: 0 8px 22px rgba(2, 132, 199, 0.07);
 }
 
 .customer-badge {
@@ -449,7 +451,7 @@ async function openDetail(p) {
   width: 1.875rem;
   height: 1.875rem;
   border-radius: 50%;
-  background: var(--p-primary-color);
+  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
   color: #fff;
   display: flex;
   align-items: center;
@@ -482,7 +484,7 @@ async function openDetail(p) {
 }
 
 .cart-count-badge {
-  background: var(--p-primary-color);
+  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
   color: #fff;
   border-radius: 999px;
   font-size: 0.7rem;
@@ -511,8 +513,8 @@ async function openDetail(p) {
   flex-shrink: 0;
   padding: 0.3125rem 0.875rem;
   border-radius: 999px;
-  border: 1px solid var(--p-surface-border);
-  background: transparent;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #ffffff;
   font-size: 0.8125rem;
   cursor: pointer;
   color: var(--p-text-color-secondary);
@@ -523,9 +525,10 @@ async function openDetail(p) {
 }
 
 .cat-tab.active {
-  background: var(--p-primary-color);
+  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
   color: #fff;
   border-color: var(--p-primary-color);
+  box-shadow: 0 8px 18px rgba(2, 120, 184, 0.16);
 }
 
 /* ─── search row ─────────────────────────────────────────────── */
@@ -573,9 +576,9 @@ async function openDetail(p) {
   grid-template-columns: repeat(2, minmax(5.5rem, 1fr));
   gap: 0.25rem;
   padding: 0.25rem;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
-  background: var(--p-surface-50, #f8fafc);
+  background: var(--app-blue-soft, #eaf7ff);
   flex: 0 0 auto;
 }
 
@@ -598,13 +601,13 @@ async function openDetail(p) {
 }
 
 .stock-option:hover {
-  color: var(--p-text-color);
+  color: var(--p-primary-color);
 }
 
 .stock-option.active {
   background: var(--p-surface-0, #ffffff);
   color: var(--p-primary-color);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.13);
 }
 
 @media (max-width: 520px) {
@@ -636,7 +639,8 @@ async function openDetail(p) {
     flex-shrink: 0;
     overflow-y: auto;
     padding: 0.75rem 0.5rem;
-    border-right: 1px solid var(--p-surface-border);
+    border-right: 1px solid var(--app-blue-line, #c7e7fa);
+    background: linear-gradient(180deg, #ffffff 0%, #f7fcff 100%);
     gap: 0.125rem;
     scrollbar-width: thin;
   }
@@ -655,18 +659,19 @@ async function openDetail(p) {
   color: var(--p-text-color-secondary);
   text-align: left;
   width: 100%;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
 .side-tab:hover {
-  background: var(--p-surface-hover);
-  color: var(--p-text-color);
+  background: var(--app-blue-soft, #eaf7ff);
+  color: var(--p-primary-color);
 }
 
 .side-tab.active {
-  background: var(--p-primary-50, #eff6ff);
-  color: var(--p-primary-color);
+  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
+  color: #ffffff;
   font-weight: 600;
+  box-shadow: 0 8px 18px rgba(2, 120, 184, 0.16);
 }
 
 .side-tab i {
@@ -711,25 +716,28 @@ async function openDetail(p) {
 
 /* ─── product card ───────────────────────────────────────────── */
 .product-card {
-  border-radius: 12px;
-  border: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
+  border-radius: 8px;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #ffffff;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: box-shadow 0.15s, transform 0.12s;
+  transition: box-shadow 0.15s, transform 0.12s, border-color 0.15s;
   min-height: 140px;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .product-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--p-primary-color);
+  box-shadow: var(--app-shadow-card, 0 14px 34px rgba(2, 132, 199, 0.13));
   transform: translateY(-2px);
 }
 
 .card-image {
   height: 7rem;
-  background: var(--p-surface-ground);
+  background:
+    linear-gradient(180deg, #f2faff 0%, #ffffff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -757,7 +765,7 @@ async function openDetail(p) {
   position: absolute;
   top: 0.375rem;
   left: 0.375rem;
-  background: rgba(234, 88, 12, 0.88);
+  background: rgba(2, 120, 184, 0.9);
   color: #fff;
   font-size: 0.625rem;
   font-weight: 700;
@@ -772,7 +780,7 @@ async function openDetail(p) {
   position: absolute;
   top: 0.375rem;
   left: 0.375rem;
-  background: rgba(13, 148, 136, 0.9);
+  background: rgba(14, 165, 233, 0.9);
   color: #fff;
   font-size: 0.625rem;
   font-weight: 700;

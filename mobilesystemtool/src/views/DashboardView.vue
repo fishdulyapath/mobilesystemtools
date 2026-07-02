@@ -58,6 +58,12 @@ onActivated(refresh)
   margin: 0 0 1.5rem;
 }
 
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 /* ─── section divider label ──────────────────────────────── */
 .section-label {
   display: flex;
@@ -74,7 +80,7 @@ onActivated(refresh)
 /* ─── shared grid wrapper ────────────────────────────────── */
 .dashboard-grid {
   display: grid;
-  gap: 1.5rem;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
@@ -132,6 +138,11 @@ onActivated(refresh)
 
 /* ─── collapse to single column on mobile ────────────────── */
 @media (max-width: 767px) {
+  .page-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
   .top-grid,
   .rank-grid {
     grid-template-columns: 1fr;

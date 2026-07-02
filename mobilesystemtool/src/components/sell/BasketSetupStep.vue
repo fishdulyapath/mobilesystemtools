@@ -400,6 +400,7 @@ function confirm() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: linear-gradient(180deg, #fbfdff 0%, #f3faff 100%);
 }
 
 .setup-header {
@@ -407,12 +408,16 @@ function confirm() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(14, 165, 233, 0.12), transparent 22rem),
+    linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
 }
 
 .setup-title {
   font-size: 1.05rem;
   font-weight: 600;
+  color: var(--app-blue-ink, #075985);
 }
 
 .setup-body {
@@ -460,9 +465,9 @@ function confirm() {
   right: 0;
   z-index: 100;
   background: #ffffff;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-card, 0 14px 34px rgba(2, 132, 199, 0.13));
   max-height: 200px;
   overflow-y: auto;
 }
@@ -482,7 +487,7 @@ function confirm() {
 }
 
 .dropdown-item:hover {
-  background: var(--p-surface-hover);
+  background: var(--app-blue-soft, #eaf7ff);
 }
 
 .dropdown-item-code {
@@ -544,9 +549,9 @@ function confirm() {
 }
 
 .credit-panel {
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
-  background: #eff6ff;
+  background: linear-gradient(180deg, #eaf7ff 0%, #ffffff 100%);
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -557,7 +562,7 @@ function confirm() {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  color: #1d4ed8;
+  color: var(--p-primary-color);
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -595,7 +600,9 @@ function confirm() {
 
 .setup-footer {
   padding: 1rem;
-  border-top: 1px solid var(--p-surface-border);
+  border-top: 1px solid var(--app-blue-line, #c7e7fa);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 -10px 24px rgba(2, 132, 199, 0.08);
 }
 
 .confirm-btn {
@@ -610,6 +617,6 @@ function confirm() {
 
 .clear-divider {
   height: 1px;
-  background: var(--p-surface-border);
+  background: var(--app-blue-line, #c7e7fa);
 }
 </style>

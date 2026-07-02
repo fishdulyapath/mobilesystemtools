@@ -40,7 +40,9 @@ async function handleLogin() {
   <Card class="login-card">
     <template #header>
       <div class="login-header">
-        <i class="pi pi-chart-bar login-logo" />
+        <div class="login-logo-wrap">
+          <img src="/fishsoft-icons/fishsoft-icon-192x192.png" alt="" class="login-logo" />
+        </div>
         <h2 class="login-title">MobileTools</h2>
         <p class="login-subtitle">ระบบช่วยขาย</p>
       </div>
@@ -96,19 +98,35 @@ async function handleLogin() {
 .login-card {
   width: 100%;
   max-width: 400px;
+  overflow: hidden;
+  border-color: rgba(2, 120, 184, 0.22);
+  box-shadow: var(--app-shadow-float);
 }
 
 .login-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem 1rem 0.5rem;
-  gap: 0.25rem;
+  padding: 2rem 1rem 0.75rem;
+  gap: 0.375rem;
+  background: linear-gradient(180deg, #eff8ff, #ffffff);
+}
+
+.login-logo-wrap {
+  width: 5rem;
+  height: 5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid var(--app-blue-line);
+  box-shadow: 0 10px 24px rgba(2, 120, 184, 0.14);
 }
 
 .login-logo {
-  font-size: 2.5rem;
-  color: var(--p-primary-color);
+  width: 4.35rem;
+  height: 4.35rem;
+  object-fit: contain;
 }
 
 .login-title {
@@ -155,5 +173,26 @@ async function handleLogin() {
 
 .w-full {
   width: 100%;
+}
+
+@media (max-width: 767px) {
+  .login-card {
+    max-width: none;
+    align-self: center;
+  }
+
+  .login-header {
+    padding-top: 1.5rem;
+  }
+
+  .login-logo-wrap {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  .login-logo {
+    width: 3.85rem;
+    height: 3.85rem;
+  }
 }
 </style>

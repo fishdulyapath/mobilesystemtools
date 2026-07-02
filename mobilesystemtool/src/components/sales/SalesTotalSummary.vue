@@ -26,9 +26,10 @@ const total = computed(() =>
   align-items: center;
   gap: 0.75rem;
   padding: 0.625rem 1rem;
-  background: var(--p-primary-50);
+  background: linear-gradient(90deg, #dff1ff, #ffffff);
   border-radius: 8px;
-  border: 1px solid var(--p-primary-200);
+  border: 1px solid var(--app-blue-line);
+  box-shadow: var(--app-shadow-sm);
 }
 
 .summary-count {

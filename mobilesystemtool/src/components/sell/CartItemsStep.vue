@@ -416,13 +416,17 @@ function onRemarkBlur(item, value) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   flex-shrink: 0;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(14, 165, 233, 0.12), transparent 22rem),
+    linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
 }
 
 .cart-title {
   font-size: 1.05rem;
   font-weight: 600;
+  color: var(--app-blue-ink, #075985);
 }
 
 .cart-body {
@@ -432,6 +436,7 @@ function onRemarkBlur(item, value) {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  background: linear-gradient(180deg, #fbfdff 0%, #f3faff 100%);
 }
 
 .empty-hint {
@@ -461,11 +466,16 @@ function onRemarkBlur(item, value) {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
+  padding: 0.55rem;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .document-type-btn {
   min-height: 2.35rem;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   background: var(--p-surface-0, #fff);
   color: var(--p-text-color-secondary);
@@ -487,8 +497,9 @@ function onRemarkBlur(item, value) {
 
 .document-type-active {
   border-color: var(--p-primary-color);
-  background: var(--p-primary-50, #eff6ff);
-  color: var(--p-primary-color);
+  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(2, 120, 184, 0.16);
 }
 
 .stock-check-error {
@@ -544,13 +555,14 @@ function onRemarkBlur(item, value) {
 }
 
 .cart-row {
-  border: 1px solid var(--p-surface-border);
-  border-radius: 10px;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background: var(--p-surface-card);
+  background: #ffffff;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 /* ─── row top: รูป + ข้อมูล + ลบ ─── */
@@ -564,7 +576,8 @@ function onRemarkBlur(item, value) {
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background: var(--p-surface-ground);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: linear-gradient(180deg, #f2faff 0%, #ffffff 100%);
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
@@ -616,8 +629,8 @@ function onRemarkBlur(item, value) {
   height: 1.1rem;
   padding: 0 0.35rem;
   border-radius: 4px;
-  background: #ccfbf1;
-  color: #0f766e;
+  background: #dff3ff;
+  color: #075985;
   font-size: 0.68rem;
   font-weight: 700;
 }
@@ -638,16 +651,17 @@ function onRemarkBlur(item, value) {
 .qty-control {
   display: flex;
   align-items: center;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   overflow: hidden;
+  background: #ffffff;
 }
 
 .qty-btn {
   width: 2rem;
   height: 2rem;
   border: none;
-  background: var(--p-surface-ground);
+  background: var(--app-blue-soft, #eaf7ff);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -658,7 +672,8 @@ function onRemarkBlur(item, value) {
 }
 
 .qty-btn:hover:not(:disabled) {
-  background: var(--p-surface-hover);
+  background: #dff3ff;
+  color: var(--p-primary-color);
 }
 
 .qty-btn:disabled {
@@ -670,8 +685,8 @@ function onRemarkBlur(item, value) {
   width: 3.5rem;
   height: 2rem;
   border: none;
-  border-left: 1px solid var(--p-surface-border);
-  border-right: 1px solid var(--p-surface-border);
+  border-left: 1px solid var(--app-blue-line, #c7e7fa);
+  border-right: 1px solid var(--app-blue-line, #c7e7fa);
   text-align: center;
   font-size: 0.875rem;
   font-family: inherit;
@@ -697,8 +712,8 @@ function onRemarkBlur(item, value) {
   display: grid;
   gap: 0.35rem;
   padding: 0.55rem 0.65rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #f5fbff;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
 }
 
@@ -720,7 +735,7 @@ function onRemarkBlur(item, value) {
 
 .set-child-qty {
   font-weight: 700;
-  color: #0f766e;
+  color: var(--p-primary-color);
 }
 
 /* ─── remark ─── */
@@ -777,27 +792,28 @@ function onRemarkBlur(item, value) {
 }
 
 .remark-close-btn:hover {
-  background: var(--p-surface-hover);
-  color: var(--p-text-color);
+  background: var(--app-blue-soft, #eaf7ff);
+  color: var(--p-primary-color);
 }
 
 /* ─── footer ─── */
 .cart-footer {
   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--p-surface-border);
+  border-top: 1px solid var(--app-blue-line, #c7e7fa);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   flex-shrink: 0;
-  background: var(--p-surface-0, #ffffff);
+  background: rgba(255, 255, 255, 0.94);
   position: sticky;
   bottom: 0;
   z-index: 5;
+  box-shadow: 0 -10px 24px rgba(2, 132, 199, 0.08);
 }
 
 .footer-clear-row {
   display: flex;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   padding-bottom: 0.25rem;
 }
 

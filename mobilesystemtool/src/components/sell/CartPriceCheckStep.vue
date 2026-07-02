@@ -679,6 +679,7 @@ async function confirmZeroPrice() {
   flex-direction: column;
   overflow: hidden;
   height: 100%;
+  background: linear-gradient(180deg, #fbfdff 0%, #f3faff 100%);
 }
 
 .price-check-header {
@@ -686,13 +687,17 @@ async function confirmZeroPrice() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   flex-shrink: 0;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(14, 165, 233, 0.12), transparent 22rem),
+    linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
 }
 
 .header-title {
   font-size: 1.05rem;
   font-weight: 600;
+  color: var(--app-blue-ink, #075985);
 }
 
 .price-check-body {
@@ -772,6 +777,11 @@ async function confirmZeroPrice() {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
+  overflow: hidden;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .price-table th {
@@ -782,12 +792,13 @@ async function confirmZeroPrice() {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #f5fbff;
 }
 
 .price-table td {
   padding: 0.5rem;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   vertical-align: middle;
 }
 
@@ -838,7 +849,8 @@ async function confirmZeroPrice() {
   width: 36px;
   height: 36px;
   border-radius: 6px;
-  background: var(--p-surface-ground);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: linear-gradient(180deg, #f2faff 0%, #ffffff 100%);
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
@@ -889,8 +901,8 @@ async function confirmZeroPrice() {
   height: 1.1rem;
   padding: 0 0.35rem;
   border-radius: 4px;
-  background: #ccfbf1;
-  color: #0f766e;
+  background: #dff3ff;
+  color: #075985;
   font-size: 0.68rem;
   font-weight: 700;
 }
@@ -900,8 +912,8 @@ async function confirmZeroPrice() {
   gap: 0.2rem;
   margin-top: 0.35rem;
   padding: 0.4rem 0.5rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #f5fbff;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 6px;
 }
 
@@ -920,7 +932,7 @@ async function confirmZeroPrice() {
 }
 
 .set-line strong {
-  color: #0f766e;
+  color: var(--p-primary-color);
 }
 
 .old-price {
@@ -955,13 +967,14 @@ async function confirmZeroPrice() {
 }
 
 .price-card {
-  background: var(--p-surface-card, #ffffff);
-  border: 1px solid var(--p-surface-border);
-  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
   padding: 0.625rem 0.75rem;
   display: flex;
   align-items: flex-start;
   gap: 0.625rem;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .price-card.card-changed {
@@ -977,7 +990,8 @@ async function confirmZeroPrice() {
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background: var(--p-surface-ground);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: linear-gradient(180deg, #f2faff 0%, #ffffff 100%);
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
@@ -1045,8 +1059,8 @@ async function confirmZeroPrice() {
   max-width: 100%;
   padding: 0.15rem 0.35rem;
   border-radius: 4px;
-  background: #f1f5f9;
-  color: var(--p-text-color-secondary);
+  background: #eaf7ff;
+  color: #075985;
   font-size: 0.7rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1111,7 +1125,7 @@ async function confirmZeroPrice() {
 
 .divider {
   height: 1px;
-  background: var(--p-surface-border);
+  background: var(--app-blue-line, #c7e7fa);
   margin: 0.125rem 0;
 }
 
@@ -1175,7 +1189,8 @@ async function confirmZeroPrice() {
 
 /* ─── Tax detail grid ─── */
 .tax-detail {
-  background: var(--p-surface-ground);
+  background: #f5fbff;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   padding: 0.75rem;
 }
@@ -1220,7 +1235,7 @@ async function confirmZeroPrice() {
   font-size: 0.78rem;
 }
 .sum-round-up {
-  color: #16a34a;
+  color: var(--p-primary-color);
 }
 .sum-round-down {
   color: #dc2626;
@@ -1228,22 +1243,23 @@ async function confirmZeroPrice() {
 
 /* ─── Footer ─── */
 .price-check-footer {
-  border-top: 2px solid var(--p-surface-border);
+  border-top: 1px solid var(--app-blue-line, #c7e7fa);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   max-height: 55vh;
   overflow: hidden;
-  background: var(--p-surface-0, #ffffff);
+  background: rgba(255, 255, 255, 0.94);
   position: sticky;
   bottom: 0;
   z-index: 5;
+  box-shadow: 0 -10px 24px rgba(2, 132, 199, 0.08);
 }
 
 .footer-confirm {
   flex-shrink: 0;
   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--p-surface-border);
+  border-top: 1px solid var(--app-blue-line, #c7e7fa);
 }
 
 .zero-price-warning {

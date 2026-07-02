@@ -15,7 +15,24 @@ defineProps({
 const emit = defineEmits(['row-select', 'tiger-mock-paid'])
 
 function isTigerPending(row) {
-  return Number(row.send_sms) === 1 && !!row.tiger_order_id
+  return Number(row.trans_flag || 44) === 44 && Number(row.send_sms) === 1 && !!row.tiger_order_id
+}
+
+function historyTypeLabel(row) {
+  if (row?.history_type_label) return row.history_type_label
+  const transFlag = Number(row?.trans_flag || 44)
+  if (transFlag === 36) return 'ใบสั่งขาย'
+  if (transFlag === 34) return 'ใบสั่งซื้อ-สั่งจอง'
+  const inquiryType = Number(row?.inquiry_type)
+  return inquiryType === 0 || inquiryType === 2 ? 'ขายเชื่อ' : 'ขายสด'
+}
+
+function historyTypeClass(row) {
+  const transFlag = Number(row?.trans_flag || 44)
+  if (transFlag === 36) return 'type-sale-order'
+  if (transFlag === 34) return 'type-reserve-order'
+  const inquiryType = Number(row?.inquiry_type)
+  return inquiryType === 0 || inquiryType === 2 ? 'type-credit' : 'type-cash'
 }
 </script>
 
@@ -43,6 +60,11 @@ function isTigerPending(row) {
       <template #body="{ data }">{{ formatDate(data.doc_date) }} {{ data.doc_time }}</template>
     </Column>
     <Column field="doc_no" header="เลขที่เอกสาร" :sortable="true"  style="min-width: 150px"/>
+    <Column header="ประเภท" style="min-width: 120px">
+      <template #body="{ data }">
+        <span class="type-badge" :class="historyTypeClass(data)">{{ historyTypeLabel(data) }}</span>
+      </template>
+    </Column>
     <Column header="สถานะ">
       <template #body="{ data }">
         <div v-if="isTigerPending(data)" class="status-cell">
@@ -90,6 +112,10 @@ function isTigerPending(row) {
   font-size: 0.9rem;
 }
 
+.sales-table :deep(.p-datatable-tbody > tr > td) {
+  vertical-align: middle;
+}
+
 .sales-table :deep(.p-paginator) {
   padding: 0.5rem;
 }
@@ -115,8 +141,39 @@ function isTigerPending(row) {
 }
 
 .status-paid {
-  color: var(--p-text-color-secondary);
+  color: #49718e;
   font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.type-cash {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.type-credit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.type-sale-order {
+  background: #e0f7ff;
+  color: #0369a1;
+}
+
+.type-reserve-order {
+  background: #eef6ff;
+  color: #0a5079;
 }
 
 @media (max-width: 768px) {

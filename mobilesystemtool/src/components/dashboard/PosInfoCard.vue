@@ -85,6 +85,10 @@ const authStore = useAuthStore()
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--app-blue-line);
+  border-radius: 8px;
+  background: #f8fcff;
 }
 
 .info-icon {

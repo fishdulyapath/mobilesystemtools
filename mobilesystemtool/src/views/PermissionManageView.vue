@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
@@ -7,6 +7,7 @@ import Message from 'primevue/message'
 import { useToast } from 'primevue/usetoast'
 import api from '@/services/api'
 import { getEmployeePermissions, getPermissionList, setEmployeePermissions } from '@/services/permissionService'
+import { PERMISSIONS } from '@/utils/permissions'
 
 const toast = useToast()
 
@@ -22,39 +23,56 @@ const errorMsg = ref('')
 let searchTimer = null
 let suppressEmployeeSearch = false
 
+const activePermissionGroups = [
+  {
+    key: 'sell',
+    title: 'ตะกร้าสินค้า',
+    icon: 'pi pi-shopping-cart',
+    keys: [PERMISSIONS.sellView],
+  },
+  {
+    key: 'history',
+    title: 'ประวัติ',
+    icon: 'pi pi-history',
+    keys: [PERMISSIONS.salesCashView, PERMISSIONS.salesCreditView],
+  },
+  {
+    key: 'inventory',
+    title: 'จัดการคลัง',
+    icon: 'pi pi-box',
+    keys: [PERMISSIONS.inventoryView, PERMISSIONS.inventoryAdjustStock],
+  },
+  {
+    key: 'permission',
+    title: 'กำหนดสิทธิ์',
+    icon: 'pi pi-lock',
+    keys: [PERMISSIONS.permissionManage],
+  },
+]
+
+const activePermissionKeySet = new Set(activePermissionGroups.flatMap((group) => group.keys))
+const activePermissionGroupByKey = new Map(
+  activePermissionGroups.flatMap((group) => group.keys.map((key) => [key, group.key])),
+)
+
 const permissionGroups = computed(() => {
-  const groups = [
-    { key: 'permission', title: 'กำหนดสิทธิ์', icon: 'pi pi-lock', items: [] },
-    { key: 'dashboard', title: 'แดชบอร์ด', icon: 'pi pi-home', items: [] },
-    { key: 'sell', title: 'ขายสินค้า', icon: 'pi pi-shopping-cart', items: [] },
-    { key: 'inventory', title: 'คลังสินค้า', icon: 'pi pi-box', items: [] },
-    { key: 'sales', title: 'ประวัติการขาย', icon: 'pi pi-history', items: [] },
-    { key: 'sales_return', title: 'รับคืนสินค้า/ลดหนี้', icon: 'pi pi-undo', items: [] },
-    { key: 'ar_documents', title: 'เอกสารลูกหนี้', icon: 'pi pi-wallet', items: [] },
-    { key: 'cash', title: 'ค่าใช้จ่าย', icon: 'pi pi-receipt', items: [] },
-    { key: 'sold_out', title: 'สินค้าขายหมด', icon: 'pi pi-exclamation-circle', items: [] },
-    { key: 'purchase', title: 'ซื้อสินค้า', icon: 'pi pi-file-import', items: [] },
-    { key: 'product', title: 'จัดการสินค้า', icon: 'pi pi-tag', items: [] },
-  ]
+  const groups = activePermissionGroups.map((group) => ({
+    key: group.key,
+    title: group.title,
+    icon: group.icon,
+    items: [],
+  }))
   const byKey = Object.fromEntries(groups.map((g) => [g.key, g]))
-  const arDocumentKeys = new Set([
-    'sales.advance_payment.view',
-    'sales.advance_payment.create',
-    'sales.ar_billing.view',
-    'sales.ar_billing.create',
-    'sales.ar_debt_payment.view',
-    'sales.ar_debt_payment.create',
-  ])
   for (const item of permissionList.value) {
-    const groupKey = arDocumentKeys.has(item.key)
-      ? 'ar_documents'
-      : item.key.startsWith('sales.return.')
-        ? 'sales_return'
-        : item.key.split('.')[0]
+    const groupKey = activePermissionGroupByKey.get(item.key)
     if (byKey[groupKey]) byKey[groupKey].items.push(item)
   }
   return groups.filter((group) => group.items.length > 0)
 })
+
+function filterActivePermissions(keys) {
+  return keys.filter((key) => activePermissionKeySet.has(key))
+}
 
 watch(search, (value) => {
   clearTimeout(searchTimer)
@@ -94,7 +112,7 @@ async function loadEmployeePermissions() {
   loadingPermissions.value = true
   errorMsg.value = ''
   try {
-    checked.value = await getEmployeePermissions(selectedEmployee.value.code)
+    checked.value = filterActivePermissions(await getEmployeePermissions(selectedEmployee.value.code))
   } catch (err) {
     errorMsg.value = err.message
     checked.value = []
@@ -120,7 +138,7 @@ async function save() {
   if (!selectedEmployee.value) return
   saving.value = true
   try {
-    const res = await setEmployeePermissions(selectedEmployee.value.code, checked.value)
+    const res = await setEmployeePermissions(selectedEmployee.value.code, filterActivePermissions(checked.value))
     if (res.success) {
       toast.add({ severity: 'success', summary: 'บันทึกสิทธิ์สำเร็จ', life: 2500 })
     } else {
@@ -206,7 +224,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 1000px;
+  max-width: 1120px;
 }
 
 .page-header {
@@ -224,10 +242,11 @@ onMounted(async () => {
 
 .search-panel,
 .permission-card {
-  background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  background: linear-gradient(180deg, #ffffff, #f8fcff);
+  border: 1px solid var(--app-blue-line);
   border-radius: 8px;
   padding: 1rem;
+  box-shadow: var(--app-shadow-sm);
 }
 
 .field-label {
@@ -256,9 +275,10 @@ onMounted(async () => {
 
 .employee-list {
   margin-top: 0.5rem;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line);
   border-radius: 8px;
   overflow: hidden;
+  background: #ffffff;
 }
 
 .employee-option {
@@ -273,7 +293,7 @@ onMounted(async () => {
 }
 
 .employee-option:hover {
-  background: var(--p-surface-hover);
+  background: var(--app-blue-soft);
 }
 
 .employee-code {
@@ -291,6 +311,10 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: #eaf6ff;
+  color: var(--p-primary-color);
 }
 
 .empty-state {
@@ -318,14 +342,20 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   font-weight: 700;
+  color: var(--app-blue-ink);
 }
 
 .permission-row {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.5rem 0;
+  padding: 0.55rem 0.4rem;
+  border-radius: 8px;
   cursor: pointer;
+}
+
+.permission-row:hover {
+  background: var(--app-blue-soft);
 }
 
 @media (max-width: 768px) {
@@ -337,5 +367,11 @@ onMounted(async () => {
   .permission-grid {
     grid-template-columns: 1fr;
   }
+
+  .search-panel,
+  .permission-card {
+    padding: 0.875rem;
+  }
 }
 </style>
+

@@ -107,6 +107,7 @@ function selectCustomer(c) {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  min-height: 100%;
 }
 
 .step-header {
@@ -124,6 +125,7 @@ function selectCustomer(c) {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
+  color: var(--app-blue-ink, #075985);
 }
 
 .walkin-btn {
@@ -142,7 +144,7 @@ function selectCustomer(c) {
 .divider-line {
   flex: 1;
   height: 1px;
-  background: var(--p-surface-border);
+  background: var(--app-blue-line, #c7e7fa);
 }
 
 .divider-text {
@@ -170,7 +172,7 @@ function selectCustomer(c) {
 .customer-skeleton {
   padding: 0.625rem 0.75rem;
   border-radius: 8px;
-  background: var(--p-surface-ground);
+  background: #f5fbff;
 }
 
 .mt-1 { margin-top: 0.25rem; }
@@ -181,23 +183,25 @@ function selectCustomer(c) {
   gap: 0.75rem;
   padding: 0.625rem 0.75rem;
   border-radius: 8px;
-  border: none;
-  background: var(--p-surface-ground);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #ffffff;
   cursor: pointer;
   text-align: left;
   width: 100%;
-  transition: background 0.12s;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .customer-item:hover {
-  background: var(--p-surface-hover);
+  border-color: var(--p-primary-color);
+  background: var(--app-blue-soft, #eaf7ff);
 }
 
 .customer-avatar {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;
-  background: var(--p-primary-color);
+  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
   color: #fff;
   display: flex;
   align-items: center;

@@ -601,7 +601,7 @@ function resetImagePlaceholder(event) {
 
 .detail-dialog-header {
   padding: 0 !important;
-  border-bottom: 1px solid var(--p-surface-200);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
 }
 
 .detail-dialog-content {
@@ -612,7 +612,9 @@ function resetImagePlaceholder(event) {
 
 .detail-sheet .p-dialog-footer {
   padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom)) !important;
-  border-top: 1px solid var(--p-surface-200);
+  border-top: 1px solid var(--app-blue-line, #c7e7fa);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 -10px 24px rgba(2, 132, 199, 0.08);
   flex-shrink: 0;
 }
 
@@ -633,6 +635,9 @@ function resetImagePlaceholder(event) {
   align-items: flex-start;
   padding: 1.125rem 1.25rem;
   width: 100%;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(14, 165, 233, 0.12), transparent 22rem),
+    linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
 }
 
 .sheet-title-wrap {
@@ -644,6 +649,7 @@ function resetImagePlaceholder(event) {
   font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.3;
+  color: var(--app-blue-ink, #075985);
 }
 
 .sheet-item-code {
@@ -666,7 +672,7 @@ function resetImagePlaceholder(event) {
   padding: 0.75rem;
   overflow: auto;
   border: 1px solid #334155;
-  border-radius: 12px;
+  border-radius: 8px;
   background: #0f172a;
   color: #e2e8f0;
   font-size: 0.78rem;
@@ -734,10 +740,10 @@ function resetImagePlaceholder(event) {
   flex-direction: column;
   gap: 1rem;
   padding: 1rem;
-  border-radius: 18px;
-  border: 1px solid var(--p-surface-200);
-  background: var(--p-surface-0);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  border-radius: 8px;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #ffffff;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .sheet-gallery {
@@ -751,8 +757,9 @@ function resetImagePlaceholder(event) {
   width: 100%;
   aspect-ratio: 1.08;
   overflow: hidden;
-  background: var(--p-surface-ground);
-  border-radius: 14px;
+  background: linear-gradient(180deg, #f2faff 0%, #ffffff 100%);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
 }
 
 .sheet-preview-img {
@@ -789,9 +796,9 @@ function resetImagePlaceholder(event) {
   width: 64px;
   height: 64px;
   padding: 0;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background: var(--p-surface-ground);
+  border-radius: 8px;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #f5fbff;
   overflow: hidden;
   flex-shrink: 0;
   cursor: pointer;
@@ -840,8 +847,8 @@ function resetImagePlaceholder(event) {
 .unit-chip {
   padding: 0.35rem 0.875rem;
   border-radius: 999px;
-  border: 2px solid var(--p-surface-border);
-  background: transparent;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #ffffff;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -855,7 +862,7 @@ function resetImagePlaceholder(event) {
 
 .unit-chip.active {
   border-color: var(--p-primary-color);
-  background: var(--p-primary-color);
+  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
   color: #fff;
 }
 
@@ -885,9 +892,9 @@ function resetImagePlaceholder(event) {
 .summary-card {
   min-height: 112px;
   padding: 0.875rem 1rem;
-  border-radius: 14px;
-  background: linear-gradient(180deg, var(--p-surface-50), var(--p-surface-0));
-  border: 1px solid var(--p-surface-200);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f5fbff 0%, #ffffff 100%);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
 }
 
 .price-text {
@@ -916,9 +923,9 @@ function resetImagePlaceholder(event) {
 }
 
 .set-items-section {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  background: #f5fbff;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
   padding: 0.75rem 0.875rem;
 }
 
@@ -943,7 +950,7 @@ function resetImagePlaceholder(event) {
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--app-blue-line, #c7e7fa);
 }
 
 .set-item-row:first-child {
@@ -978,18 +985,18 @@ function resetImagePlaceholder(event) {
 .set-item-qty {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #0f766e;
+  color: var(--p-primary-color);
 }
 
 .promotion-section {
-  background: linear-gradient(180deg, #fff7ed, #fffbeb);
-  border: 1px solid #fcd34d;
-  border-radius: 12px;
+  background: linear-gradient(180deg, #eaf7ff, #ffffff);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
   padding: 0.75rem 0.875rem;
 }
 
 .promotion-icon {
-  color: #d97706;
+  color: var(--p-primary-color);
   margin-right: 0.35rem;
 }
 
@@ -1022,16 +1029,16 @@ function resetImagePlaceholder(event) {
 .promotion-price-cell {
   text-align: right;
   font-weight: 600;
-  color: #b45309;
+  color: var(--p-primary-color);
 }
 
 .discount-section {
-  background: linear-gradient(180deg, #ecfeff, #f0fdfa);
-  border: 1px solid #5eead4;
-  border-radius: 12px;
+  background: linear-gradient(180deg, #f5fbff, #ffffff);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
   padding: 0.75rem 0.875rem;
 }
-.discount-section .promotion-icon { color: #0d9488; }
+.discount-section .promotion-icon { color: var(--p-primary-color); }
 .discount-row-2col {
   grid-template-columns: 1.4fr 1fr;
 }
@@ -1045,7 +1052,7 @@ function resetImagePlaceholder(event) {
   padding-bottom: 0.1rem;
   grid-template-columns: 1.4fr 1fr;
 }
-.discount-text { color: #0d9488; }
+.discount-text { color: var(--p-primary-color); }
 
 .out-of-stock-banner {
   display: flex;
@@ -1108,7 +1115,7 @@ function resetImagePlaceholder(event) {
   .sheet-gallery-card,
   .sheet-info-card {
     padding: 0.875rem;
-    border-radius: 14px;
+    border-radius: 8px;
   }
 
   .sheet-preview {

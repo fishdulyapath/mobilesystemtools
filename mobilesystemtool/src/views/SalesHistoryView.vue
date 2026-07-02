@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { getDocSaleHistory } from '@/services/salesService'
 import { checkNextTigerPendingPayment, mockTigerPendingPaid } from '@/services/tigerService'
 import { todayISO } from '@/utils/formatters'
@@ -8,14 +9,18 @@ import SalesTotalSummary from '@/components/sales/SalesTotalSummary.vue'
 import SalesTable from '@/components/sales/SalesTable.vue'
 import SaleDetailModal from '@/components/sales/SaleDetailModal.vue'
 import Message from 'primevue/message'
+import SelectButton from 'primevue/selectbutton'
 import { useToast } from 'primevue/usetoast'
 
 const props = defineProps({
   saleKind: { type: String, default: '' },
   title: { type: String, default: 'ประวัติการขาย' },
+  documentType: { type: String, default: 'sale' },
 })
 
 const toast = useToast()
+const route = useRoute()
+const router = useRouter()
 const filterBar = ref(null)
 
 const rows = ref([])
@@ -28,8 +33,21 @@ const checkingTiger = ref(false)
 const mockingTigerDocNo = ref('')
 let tigerPendingTimer = null
 
+const saleKindOptions = [
+  { label: 'ทั้งหมด', value: '' },
+  { label: 'ขายสด', value: 'cash' },
+  { label: 'ขายเชื่อ', value: 'credit' },
+]
+
+const selectedSaleKind = ref(props.saleKind || String(route.query.sale_kind || ''))
+const isSaleDocument = computed(() => props.documentType === 'sale')
+
 function withSaleKind(params) {
-  return { ...params, sale_kind: props.saleKind }
+  return {
+    ...params,
+    document_type: props.documentType,
+    sale_kind: isSaleDocument.value ? selectedSaleKind.value : '',
+  }
 }
 
 function defaultParams() {
@@ -61,6 +79,7 @@ function onRowSelect(doc) {
 }
 
 async function checkTigerPendingOnce() {
+  if (!isSaleDocument.value) return
   if (checkingTiger.value) return
   checkingTiger.value = true
   try {
@@ -99,25 +118,63 @@ async function onTigerMockPaid(doc) {
 
 onMounted(() => {
   loadSales(defaultParams())
-  tigerPendingTimer = setInterval(checkTigerPendingOnce, 9000)
-  checkTigerPendingOnce()
+  if (isSaleDocument.value) {
+    tigerPendingTimer = setInterval(checkTigerPendingOnce, 9000)
+    checkTigerPendingOnce()
+  }
 })
 
 onUnmounted(() => clearInterval(tigerPendingTimer))
 
-watch(() => props.saleKind, () => {
+function resetAndLoad() {
   modalVisible.value = false
   selectedDoc.value = null
   const params = defaultParams()
   currentParams.value = params
   filterBar.value?.resetFilters?.({ emitSearch: false })
   loadSales(params)
+}
+
+function onSaleKindChange() {
+  const query = { ...route.query }
+  if (selectedSaleKind.value) query.sale_kind = selectedSaleKind.value
+  else delete query.sale_kind
+  router.replace({ query })
+  loadSales(currentParams.value || defaultParams())
+}
+
+watch(() => props.saleKind, (kind) => {
+  selectedSaleKind.value = kind || String(route.query.sale_kind || '')
+  resetAndLoad()
+})
+
+watch(() => props.documentType, () => {
+  clearInterval(tigerPendingTimer)
+  tigerPendingTimer = null
+  selectedSaleKind.value = props.saleKind || ''
+  resetAndLoad()
+  if (isSaleDocument.value) {
+    tigerPendingTimer = setInterval(checkTigerPendingOnce, 9000)
+    checkTigerPendingOnce()
+  }
 })
 </script>
 
 <template>
   <div class="sales-history">
     <h1 class="page-title">{{ title }}</h1>
+
+    <div v-if="isSaleDocument" class="type-filter">
+      <span class="type-filter-label">ประเภท</span>
+      <SelectButton
+        v-model="selectedSaleKind"
+        :options="saleKindOptions"
+        option-label="label"
+        option-value="value"
+        :allow-empty="false"
+        @change="onSaleKindChange"
+      />
+    </div>
 
     <SalesFilterBar ref="filterBar" @search="onSearch" />
 
@@ -126,7 +183,7 @@ watch(() => props.saleKind, () => {
     <SalesTotalSummary :rows="rows" />
 
     <SalesTable
-      :key="saleKind"
+      :key="`${documentType}-${selectedSaleKind}`"
       :rows="rows"
       :loading="loading"
       :mocking-doc-no="mockingTigerDocNo"
@@ -143,14 +200,32 @@ watch(() => props.saleKind, () => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem 0.5rem;
+  padding: 0.25rem 0;
 }
 
 .page-title {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
-  padding: 0 0.5rem;
+  padding: 0;
+}
+
+.type-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  flex-wrap: wrap;
+  border: 1px solid var(--app-blue-line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f6fbff);
+  box-shadow: var(--app-shadow-sm);
+}
+
+.type-filter-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--p-text-color-secondary);
 }
 
 .mt-1 {
@@ -160,12 +235,26 @@ watch(() => props.saleKind, () => {
 @media (max-width: 768px) {
   .sales-history {
     gap: 0.75rem;
-    padding: 0.75rem 0.25rem;
+    padding: 0;
   }
 
   .page-title {
     font-size: 1.25rem;
-    padding: 0 0.25rem;
+  }
+
+  .type-filter {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .type-filter :deep(.p-selectbutton) {
+    width: 100%;
+  }
+
+  .type-filter :deep(.p-selectbutton .p-button) {
+    flex: 1;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.8rem;
   }
 }
 </style>

@@ -1363,15 +1363,17 @@ router.post('/savetransandpro', async (req, res) => {
 // ── GET /service/v1/getDocSaleHistory ──────────────────────────────────────
 // ลอกจาก Java: ถ้ามี search → ยกเลิก date filter และค้นด้วย doc_no/cust_code/name_1 แทน
 router.get('/getDocSaleHistory', async (req, res) => {
-  const { search = '', from_date = '', to_date = '', sale_kind = '' } = req.query;
+  const { search = '', from_date = '', to_date = '', sale_kind = '', document_type = '' } = req.query;
   try {
+    const documentType = resolveSaleDocumentType(document_type);
+    const transFlag = documentType.transFlag;
     const params = [];
     let whereExtra = '';
     let saleKindWhere = '';
 
-    if (sale_kind === 'cash') {
+    if (documentType.key === 'sale' && sale_kind === 'cash') {
       saleKindWhere = ' AND ict.inquiry_type IN (1,3)';
-    } else if (sale_kind === 'credit') {
+    } else if (documentType.key === 'sale' && sale_kind === 'credit') {
       saleKindWhere = ' AND ict.inquiry_type IN (0,2)';
     }
 
@@ -1391,7 +1393,15 @@ router.get('/getDocSaleHistory', async (req, res) => {
     }
 
     const sql = `
-      SELECT ict.doc_no, ict.doc_date, ict.doc_time, ict.inquiry_type, ict.total_amount,
+      SELECT ict.doc_no, ict.doc_date, ict.doc_time, ict.inquiry_type, ict.trans_flag, ict.total_amount,
+        '${documentType.key}' AS document_type,
+        CASE
+          WHEN ict.trans_flag = 44 AND ict.inquiry_type IN (1,3) THEN 'ขายสด'
+          WHEN ict.trans_flag = 44 AND ict.inquiry_type IN (0,2) THEN 'ขายเชื่อ'
+          WHEN ict.trans_flag = 36 THEN 'ใบสั่งขาย'
+          WHEN ict.trans_flag = 34 THEN 'ใบสั่งซื้อ-สั่งจอง'
+          ELSE COALESCE(df.name_1,'')
+        END AS history_type_label,
         COALESCE(ict.doc_format_code,'') AS doc_format_code,
         COALESCE(df.name_1,'') AS doc_format_name,
         COALESCE(df.form_code,'') AS form_code,
@@ -1406,10 +1416,10 @@ router.get('/getDocSaleHistory', async (req, res) => {
         cb.total_amount_pay
       FROM ic_trans ict
       LEFT JOIN ar_customer ar ON ar.code = ict.cust_code
-      LEFT JOIN cb_trans cb ON cb.doc_no = ict.doc_no AND cb.trans_flag = 44
-      LEFT JOIN erp_doc_format df ON df.screen_code = 'SI' AND df.code = ict.doc_format_code
-      WHERE ict.trans_flag = 44
-        AND ict.last_status = 0
+      LEFT JOIN cb_trans cb ON cb.doc_no = ict.doc_no AND cb.trans_flag = ict.trans_flag
+      LEFT JOIN erp_doc_format df ON df.screen_code = '${documentType.screenCode}' AND df.code = ict.doc_format_code
+      WHERE ict.trans_flag = ${transFlag}
+        AND COALESCE(ict.last_status,0) = 0
         ${saleKindWhere}
         ${whereExtra}
       ORDER BY ict.create_datetime DESC
@@ -1516,12 +1526,25 @@ router.get('/getProductSaleHistory', async (req, res) => {
 
 // ── GET /service/v1/getDocSaleHistoryDetail ────────────────────────────────
 router.get('/getDocSaleHistoryDetail', async (req, res) => {
-  const { doc_no = '' } = req.query;
+  const { doc_no = '', trans_flag = '', document_type = '' } = req.query;
   if (!doc_no) return res.status(400).json({ success: false, msg: 'doc_no is required' });
   try {
+    const requestedTransFlag = parseInt(trans_flag, 10);
+    const fallbackType = resolveSaleDocumentType(document_type);
+    const allowedFlags = new Set(Object.values(SALE_DOCUMENT_TYPES).map((type) => type.transFlag));
+    const effectiveTransFlag = allowedFlags.has(requestedTransFlag) ? requestedTransFlag : fallbackType.transFlag;
+    const documentType = Object.values(SALE_DOCUMENT_TYPES).find((type) => type.transFlag === effectiveTransFlag) || SALE_DOCUMENT_TYPES.sale;
     const [headerRes, itemsRes, promotionTableRes] = await Promise.all([
       query(
-        `SELECT t.inquiry_type, t.vat_type, t.vat_rate,
+        `SELECT t.inquiry_type, t.trans_flag, t.vat_type, t.vat_rate,
+            $3 AS document_type,
+            CASE
+              WHEN t.trans_flag = 44 AND t.inquiry_type IN (1,3) THEN 'ขายสด'
+              WHEN t.trans_flag = 44 AND t.inquiry_type IN (0,2) THEN 'ขายเชื่อ'
+              WHEN t.trans_flag = 36 THEN 'ใบสั่งขาย'
+              WHEN t.trans_flag = 34 THEN 'ใบสั่งซื้อ-สั่งจอง'
+              ELSE COALESCE(df.name_1,'')
+            END AS history_type_label,
             COALESCE(t.doc_format_code,'') AS doc_format_code,
             COALESCE(df.name_1,'') AS doc_format_name,
             COALESCE(df.form_code,'') AS form_code,
@@ -1539,10 +1562,10 @@ router.get('/getDocSaleHistoryDetail', async (req, res) => {
             COALESCE(cb.total_credit_charge, 0) AS total_credit_charge,
             COALESCE(cb.money_change, 0) AS money_change
          FROM ic_trans t
-         LEFT JOIN cb_trans cb ON cb.doc_no = t.doc_no AND cb.trans_flag = 44
-         LEFT JOIN erp_doc_format df ON df.screen_code = 'SI' AND df.code = t.doc_format_code
-         WHERE t.trans_flag = 44 AND t.doc_no = $1 LIMIT 1`,
-        [doc_no]
+         LEFT JOIN cb_trans cb ON cb.doc_no = t.doc_no AND cb.trans_flag = t.trans_flag
+         LEFT JOIN erp_doc_format df ON df.screen_code = $4 AND df.code = t.doc_format_code
+         WHERE t.trans_flag = $2 AND t.doc_no = $1 LIMIT 1`,
+        [doc_no, effectiveTransFlag, documentType.key, documentType.screenCode]
       ),
       query(
         `SELECT item_code, item_name, unit_code, qty, price, sum_amount,
@@ -1553,10 +1576,10 @@ router.get('/getDocSaleHistoryDetail', async (req, res) => {
           COALESCE(set_ref_line,'') AS set_ref_line,
           COALESCE(discount,'') AS discount, COALESCE(discount_amount,0) AS discount_amount
          FROM ic_trans_detail
-         WHERE trans_flag = 44 AND doc_no = $1
+         WHERE trans_flag = $2 AND doc_no = $1
            AND (COALESCE(set_ref_line,'') = '' OR COALESCE(item_type,0) = 3)
          ORDER BY line_number`,
-        [doc_no]
+        [doc_no, effectiveTransFlag]
       ),
       query(
         `SELECT to_regclass('public.ic_trans_detail_promotion') IS NOT NULL AS table_exists`,
@@ -1564,13 +1587,13 @@ router.get('/getDocSaleHistoryDetail', async (req, res) => {
       ),
     ]);
     let promotions = [];
-    if (promotionTableRes.rows[0]?.table_exists) {
+    if (effectiveTransFlag === SALE_DOCUMENT_TYPES.sale.transFlag && promotionTableRes.rows[0]?.table_exists) {
       const promotionRes = await query(
         `SELECT promotion_code, promotion_name, qty, price, sum_amount, line_number
          FROM ic_trans_detail_promotion
-         WHERE trans_flag = 44 AND doc_no = $1
+         WHERE trans_flag = $2 AND doc_no = $1
          ORDER BY line_number`,
-        [doc_no]
+        [doc_no, effectiveTransFlag]
       );
       promotions = promotionRes.rows;
     }

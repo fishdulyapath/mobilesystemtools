@@ -1076,6 +1076,7 @@ async function saveTigerPending() {
   flex-direction: column;
   overflow: hidden;
   height: 100%;
+  background: linear-gradient(180deg, #fbfdff 0%, #f3faff 100%);
 }
 
 .payment-header {
@@ -1083,13 +1084,17 @@ async function saveTigerPending() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   flex-shrink: 0;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(14, 165, 233, 0.12), transparent 22rem),
+    linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
 }
 
 .header-title {
   font-size: 1.05rem;
   font-weight: 600;
+  color: var(--app-blue-ink, #075985);
 }
 
 /* ─── ขายเชื่อ ─── */
@@ -1109,6 +1114,12 @@ async function saveTigerPending() {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+  width: min(100%, 360px);
+  padding: 1.25rem;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--app-shadow-card, 0 14px 34px rgba(2, 132, 199, 0.13));
 }
 
 .credit-total-label {
@@ -1126,9 +1137,9 @@ async function saveTigerPending() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  background: #eaf7ff;
+  color: var(--p-primary-color);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 999px;
   padding: 0.3rem 0.85rem;
   font-size: 0.83rem;
@@ -1141,9 +1152,9 @@ async function saveTigerPending() {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
-  background: #eff6ff;
+  background: linear-gradient(180deg, #eaf7ff 0%, #ffffff 100%);
   padding: 0.75rem;
 }
 
@@ -1167,8 +1178,8 @@ async function saveTigerPending() {
   display: flex;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  background: var(--p-surface-ground);
-  border-bottom: 1px solid var(--p-surface-border);
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   flex-shrink: 0;
   gap: 0.5rem;
 }
@@ -1195,7 +1206,7 @@ async function saveTigerPending() {
 .summary-paid {
   font-size: 1rem;
   font-weight: 600;
-  color: #16a34a;
+  color: var(--p-primary-color);
 }
 
 .summary-remaining {
@@ -1207,7 +1218,7 @@ async function saveTigerPending() {
 .summary-change {
   font-size: 1rem;
   font-weight: 600;
-  color: #16a34a;
+  color: var(--p-primary-color);
 }
 
 /* ─── ปัดเศษ ─── */
@@ -1216,8 +1227,8 @@ async function saveTigerPending() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--p-surface-0, #fff);
-  border-bottom: 1px solid var(--p-surface-border);
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   flex-shrink: 0;
 }
 
@@ -1238,7 +1249,7 @@ async function saveTigerPending() {
 
 .rounding-fill-btn {
   border: 1px dashed var(--p-primary-color);
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: var(--p-primary-color);
   font-size: 0.78rem;
@@ -1251,7 +1262,7 @@ async function saveTigerPending() {
 }
 
 .rounding-fill-btn:hover {
-  background: var(--p-primary-50, #eff6ff);
+  background: var(--app-blue-soft, #eaf7ff);
 }
 
 /* ─── Entries list ─── */
@@ -1279,23 +1290,25 @@ async function saveTigerPending() {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  background: var(--p-surface-ground);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  background: #ffffff;
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
 }
 
 .entry-icon-wrap {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--p-surface-200, #e2e8f0);
+  background: #eaf7ff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.entry-icon { font-size: 0.85rem; color: var(--p-text-color-secondary); }
+.entry-icon { font-size: 0.85rem; color: var(--p-primary-color); }
 
 .entry-info {
   flex: 1;
@@ -1324,16 +1337,16 @@ async function saveTigerPending() {
 
 /* ─── Add payment panel ─── */
 .add-payment-panel {
-  border-top: 1px solid var(--p-surface-border);
+  border-top: 1px solid var(--app-blue-line, #c7e7fa);
   flex-shrink: 0;
-  background: var(--p-surface-0, #fff);
+  background: rgba(255, 255, 255, 0.94);
   max-height: 50vh;
   overflow-y: auto;
 }
 
 .type-tabs {
   display: flex;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
   overflow-x: auto;
 }
 
@@ -1346,7 +1359,7 @@ async function saveTigerPending() {
   gap: 0.375rem;
   padding: 0.625rem 0.5rem;
   border: none;
-  background: none;
+  background: #ffffff;
   font-size: 0.83rem;
   color: var(--p-text-color-secondary);
   cursor: pointer;
@@ -1355,10 +1368,16 @@ async function saveTigerPending() {
   transition: color 0.15s, border-color 0.15s;
 }
 
+.type-tab:hover {
+  color: var(--p-primary-color);
+  background: var(--app-blue-soft, #eaf7ff);
+}
+
 .type-tab-active {
   color: var(--p-primary-color);
   border-bottom-color: var(--p-primary-color);
   font-weight: 600;
+  background: #f5fbff;
 }
 
 .type-tab .pi { font-size: 0.78rem; }
@@ -1403,9 +1422,9 @@ async function saveTigerPending() {
   flex: 1;
   min-width: 3rem;
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--p-surface-border);
-  border-radius: 6px;
-  background: var(--p-surface-ground);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
+  background: #ffffff;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--p-text-color);
@@ -1415,7 +1434,7 @@ async function saveTigerPending() {
 }
 
 .denom-btn:hover:not(:disabled) {
-  background: var(--p-primary-50, #eff6ff);
+  background: var(--app-blue-soft, #eaf7ff);
   border-color: var(--p-primary-color);
   color: var(--p-primary-color);
 }
@@ -1441,7 +1460,7 @@ async function saveTigerPending() {
 .fill-remaining-btn {
   align-self: flex-start;
   border: 1px dashed var(--p-primary-color);
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: var(--p-primary-color);
   font-size: 0.78rem;
@@ -1453,13 +1472,14 @@ async function saveTigerPending() {
 }
 
 .fill-remaining-btn:hover {
-  background: var(--p-primary-50, #eff6ff);
+  background: var(--app-blue-soft, #eaf7ff);
 }
 
 /* credit calc */
 .credit-calc {
-  background: var(--p-surface-ground);
-  border-radius: 6px;
+  background: #f5fbff;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
   padding: 0.5rem 0.75rem;
   display: flex;
   flex-direction: column;
@@ -1491,8 +1511,8 @@ async function saveTigerPending() {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  background: var(--p-surface-ground);
-  border: 1px solid var(--p-surface-border);
+  background: #f5fbff;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   padding: 0.65rem 0.75rem;
 }
@@ -1516,7 +1536,7 @@ async function saveTigerPending() {
   justify-content: center;
   gap: 0.45rem;
   min-height: 4.25rem;
-  border: 1px dashed var(--p-surface-border);
+  border: 1px dashed var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   color: var(--p-text-color-secondary);
   font-size: 0.86rem;
@@ -1559,7 +1579,7 @@ async function saveTigerPending() {
 
 .deposit-doc-card {
   min-height: 5.75rem;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   background: var(--p-surface-0, #fff);
   color: var(--p-text-color);
@@ -1574,7 +1594,7 @@ async function saveTigerPending() {
 
 .deposit-doc-card:hover:not(:disabled) {
   border-color: var(--p-primary-color);
-  background: var(--p-primary-50, #eff6ff);
+  background: var(--app-blue-soft, #eaf7ff);
 }
 
 .deposit-doc-card:disabled {
@@ -1605,7 +1625,7 @@ async function saveTigerPending() {
 
 .deposit-doc-type {
   font-weight: 600;
-  color: #0f766e !important;
+  color: var(--p-primary-color) !important;
 }
 
 @media (max-width: 640px) {
@@ -1639,16 +1659,17 @@ async function saveTigerPending() {
 
 /* ─── Footer ─── */
 .payment-footer {
-  border-top: 2px solid var(--p-surface-border);
+  border-top: 1px solid var(--app-blue-line, #c7e7fa);
   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background: var(--p-surface-0, #fff);
+  background: rgba(255, 255, 255, 0.94);
   position: sticky;
   bottom: 0;
   z-index: 5;
+  box-shadow: 0 -10px 24px rgba(2, 132, 199, 0.08);
 }
 
 .save-error {
@@ -1732,8 +1753,8 @@ async function saveTigerPending() {
 
 .tiger-info-box {
   width: 100%;
-  background: var(--p-surface-ground);
-  border: 1px solid var(--p-surface-border);
+  background: #f5fbff;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
   padding: 0.625rem 0.875rem;
   display: flex;

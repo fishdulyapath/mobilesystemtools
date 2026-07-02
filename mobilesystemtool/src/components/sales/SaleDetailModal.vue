@@ -55,7 +55,7 @@ const printForms = ref([])
 const selectedPrintForms = ref([])
 
 async function loadDocImages() {
-  if (!props.docHeader?.doc_no) {
+  if (!props.docHeader?.doc_no || !isSaleDocument.value) {
     docImages.value = []
     return
   }
@@ -70,7 +70,7 @@ async function loadDetail() {
   docImages.value = []
   try {
     const [detail] = await Promise.all([
-      getDocSaleHistoryDetail(props.docHeader.doc_no),
+      getDocSaleHistoryDetail(props.docHeader.doc_no, props.docHeader.trans_flag, props.docHeader.document_type),
       loadDocImages(),
     ])
     detailData.value = detail
@@ -100,6 +100,19 @@ watch(() => props.visible, async (val) => {
 const header = computed(() => detailData.value?.header || {})
 const items = computed(() => detailData.value?.items || [])
 const displayDocTotal = computed(() => header.value.total_net_amount ?? header.value.total_amount ?? props.docHeader?.total_net_amount ?? props.docHeader?.total_amount)
+const docTransFlag = computed(() => Number(header.value.trans_flag ?? props.docHeader?.trans_flag ?? 44))
+const isSaleDocument = computed(() => docTransFlag.value === 44)
+const documentBadgeLabel = computed(() => {
+  if (header.value.history_type_label || props.docHeader?.history_type_label) return header.value.history_type_label || props.docHeader.history_type_label
+  if (docTransFlag.value === 36) return 'ใบสั่งขาย'
+  if (docTransFlag.value === 34) return 'ใบสั่งซื้อ-สั่งจอง'
+  return inquiryLabel.value === 'สด' ? 'ขายสด' : 'ขายเชื่อ'
+})
+const documentBadgeClass = computed(() => {
+  if (docTransFlag.value === 36) return 'badge-sale-order'
+  if (docTransFlag.value === 34) return 'badge-reserve-order'
+  return inquiryLabel.value === 'สด' ? 'badge-cash' : 'badge-credit'
+})
 
 const inquiryLabel = computed(() => {
   const t = Number(header.value.inquiry_type)
@@ -133,6 +146,7 @@ const tigerStatusNote = computed(() => {
 })
 
 async function openPrintDialog() {
+  if (!isSaleDocument.value) return
   if (!props.docHeader?.doc_no || printLoading.value) return
   printDialogVisible.value = true
   printLoading.value = true
@@ -259,6 +273,7 @@ async function confirmDeleteImage() {
           <span class="doc-date">{{ formatDate(docHeader?.doc_date) }} {{ docHeader?.doc_time }}</span>
         </div>
         <Button
+          v-if="isSaleDocument"
           label="พิมพ์ฟอร์ม"
           icon="pi pi-print"
           size="small"
@@ -277,8 +292,8 @@ async function confirmDeleteImage() {
 
       <!-- badges: ประเภทขาย + ภาษี -->
       <div class="badge-row">
-        <span class="badge" :class="inquiryLabel === 'สด' ? 'badge-cash' : 'badge-credit'">
-          {{ inquiryLabel === 'สด' ? 'ขายสด' : 'ขายเชื่อ' }}
+        <span class="badge" :class="documentBadgeClass">
+          {{ documentBadgeLabel }}
         </span>
         <span class="badge badge-vat">{{ vatLabel }}</span>
         <span v-if="isTigerPending" class="badge badge-tiger-pending">
@@ -313,7 +328,7 @@ async function confirmDeleteImage() {
         />
       </div>
 
-      <div class="proof-section">
+      <div v-if="isSaleDocument" class="proof-section">
         <div class="proof-head">
           <div>
             <div class="proof-title">หลักฐานการโอน</div>
@@ -594,6 +609,16 @@ async function confirmDeleteImage() {
 .badge-vat {
   background: var(--p-surface-100, #f3f4f6);
   color: var(--p-text-color-secondary);
+}
+
+.badge-sale-order {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-reserve-order {
+  background: #f3e8ff;
+  color: #7e22ce;
 }
 
 .badge-tiger-pending {

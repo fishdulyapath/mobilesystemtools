@@ -98,7 +98,7 @@ onUnmounted(() => clearInterval(timer))
           size="small"
           severity="warning"
           outlined
-          @click="router.push('/sales-history/cash')"
+          @click="router.push({ path: '/sales-history', query: { sale_kind: 'cash' } })"
         />
       </div>
     </div>

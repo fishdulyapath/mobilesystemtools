@@ -48,7 +48,10 @@ function toggleMenu(event) {
       <button class="hamburger" aria-label="เมนู" @click="emit('menu-click')">
         <i class="pi pi-bars" />
       </button>
-      <span class="topbar-brand">MobileTools</span>
+      <span class="topbar-brand">
+        <img src="/fishsoft-icons/fishsoft-icon-32x32.png" alt="" class="brand-mark" />
+        MobileTools
+      </span>
     </div>
 
     <div class="topbar-right">
@@ -73,9 +76,10 @@ function toggleMenu(event) {
   justify-content: space-between;
   padding: 0 1rem;
   height: 56px;
-  background-color: var(--p-surface-0, #ffffff);
-  border-bottom: 1px solid var(--p-surface-border);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--app-blue-line);
+  box-shadow: 0 8px 26px rgba(8, 47, 73, 0.08);
+  backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -95,7 +99,7 @@ function toggleMenu(event) {
   background: none;
   cursor: pointer;
   font-size: 1.1rem;
-  color: var(--p-text-color);
+  color: var(--app-blue-ink);
   border-radius: 6px;
   align-items: center;
   justify-content: center;
@@ -103,7 +107,7 @@ function toggleMenu(event) {
 }
 
 .hamburger:hover {
-  background: var(--p-surface-hover);
+  background: var(--app-blue-soft);
 }
 
 @media (max-width: 1180px) {
@@ -113,9 +117,18 @@ function toggleMenu(event) {
 }
 
 .topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--p-primary-color);
+}
+
+.brand-mark {
+  width: 1.8rem;
+  height: 1.8rem;
+  object-fit: contain;
 }
 
 .topbar-right {
@@ -131,6 +144,8 @@ function toggleMenu(event) {
 
 .avatar-btn {
   cursor: pointer;
+  background: var(--p-primary-color);
+  color: #ffffff;
 }
 
 .avatar-btn:hover {

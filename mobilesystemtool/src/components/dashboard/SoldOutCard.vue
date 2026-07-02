@@ -109,7 +109,7 @@ defineExpose({ load })
 
 .empty-icon {
   font-size: 1.75rem;
-  color: var(--p-green-500);
+  color: var(--p-primary-color);
 }
 
 .rank-list {
