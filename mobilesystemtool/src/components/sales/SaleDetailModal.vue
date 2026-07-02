@@ -125,6 +125,15 @@ function formatVatRate(rate) {
   return Number.isFinite(value) ? String(Math.round(value)) : '0'
 }
 
+function lineDiscountLabel(row = {}) {
+  const discount = String(row.discount || '').trim()
+  const amount = Number(row.discount_amount || 0)
+  if (discount && amount > 0) return `${discount} (-${formatCurrency(amount)})`
+  if (discount) return discount
+  if (amount > 0) return `-${formatCurrency(amount)}`
+  return '-'
+}
+
 const vatLabel = computed(() => {
   const vt = Number(header.value.vat_type)
   const rate = formatVatRate(header.value.vat_rate)
@@ -370,9 +379,6 @@ async function confirmDeleteImage() {
           <Column field="item_name" header="ชื่อสินค้า">
             <template #body="{ data }">
               <div>{{ data.item_name }}</div>
-              <div v-if="data.discount" class="item-discount-sub">
-                ลด {{ data.discount }} (-{{ formatCurrency(data.discount_amount) }})
-              </div>
             </template>
           </Column>
           <Column field="unit_code" header="หน่วย" />
@@ -381,6 +387,13 @@ async function confirmDeleteImage() {
           </Column>
           <Column field="price" header="ราคา/หน่วย">
             <template #body="{ data }">{{ formatCurrency(data.price) }}</template>
+          </Column>
+          <Column header="ส่วนลด">
+            <template #body="{ data }">
+              <span :class="lineDiscountLabel(data) === '-' ? 'discount-empty' : 'item-discount-val'">
+                {{ lineDiscountLabel(data) }}
+              </span>
+            </template>
           </Column>
           <Column header="ยอดรวม">
             <template #body="{ data }">{{ formatCurrency(data.sum_amount) }}</template>
@@ -858,7 +871,16 @@ async function confirmDeleteImage() {
   font-weight: 500;
 }
 
-.item-discount-sub { font-size: 0.72rem; color: #b45309; margin-top: 0.15rem; }
+.item-discount-val {
+  color: #b45309;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.discount-empty {
+  color: var(--p-text-color-secondary);
+}
+
 .discount-val {
   color: #dc2626;
 }

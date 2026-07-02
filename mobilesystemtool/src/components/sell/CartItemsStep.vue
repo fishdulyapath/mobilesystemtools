@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -11,10 +11,9 @@ import { productImageUrl } from '@/utils/imageUrls'
 
 const props = defineProps({
   basket: { type: Object, required: true },
-  documentTypes: { type: Array, default: () => [] },
   selectedDocumentType: { type: Object, required: true },
 })
-const emit = defineEmits(['back', 'next', 'update:selectedDocumentType'])
+const emit = defineEmits(['back', 'next'])
 
 const cartStore = useCartStore()
 const cartKey = computed(() => `BASKET-${props.basket.basket_id}`)
@@ -140,11 +139,6 @@ async function goNext() {
   emit('next')
 }
 
-function selectDocumentType(type) {
-  if (!type?.key || type.key === props.selectedDocumentType?.key) return
-  emit('update:selectedDocumentType', type.key)
-}
-
 function toggleRemark(guid_code) {
   remarkOpen.value[guid_code] = !remarkOpen.value[guid_code]
 }
@@ -243,18 +237,10 @@ function onRemarkBlur(item, value) {
       </div>
 
       <template v-else>
-        <div v-if="documentTypes.length > 1" class="document-type-group" role="group" aria-label="ประเภทเอกสาร">
-          <button
-            v-for="type in documentTypes"
-            :key="type.key"
-            type="button"
-            class="document-type-btn"
-            :class="{ 'document-type-active': selectedDocumentType.key === type.key }"
-            @click="selectDocumentType(type)"
-          >
-            <i :class="type.icon" />
-            <span>{{ type.label }}</span>
-          </button>
+        <div class="document-type-summary">
+          <i :class="selectedDocumentType.icon" />
+          <span>{{ selectedDocumentType.label }}</span>
+          <small>{{ basket.doc_format_code || selectedDocumentType.docFormatCode || '-' }}</small>
         </div>
 
         <div v-if="requiresStockCheck && stockIssues.length > 0" class="stock-warning-panel">
@@ -462,44 +448,25 @@ function onRemarkBlur(item, value) {
   color: #92400e;
 }
 
-.document-type-group {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
-  padding: 0.55rem;
-  border: 1px solid var(--app-blue-line, #c7e7fa);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
-}
-
-.document-type-btn {
+.document-type-summary {
   min-height: 2.35rem;
   border: 1px solid var(--app-blue-line, #c7e7fa);
   border-radius: 8px;
-  background: var(--p-surface-0, #fff);
-  color: var(--p-text-color-secondary);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--app-blue-ink, #075985);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  font-family: inherit;
+  gap: 0.5rem;
   font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0.45rem 0.65rem;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
+}
+
+.document-type-summary small {
+  margin-left: auto;
+  color: var(--p-text-color-secondary);
   font-weight: 600;
-  cursor: pointer;
-  padding: 0.45rem 0.5rem;
-}
-
-.document-type-btn:hover {
-  border-color: var(--p-primary-color);
-  color: var(--p-primary-color);
-}
-
-.document-type-active {
-  border-color: var(--p-primary-color);
-  background: linear-gradient(135deg, var(--p-primary-color), #0ea5e9);
-  color: #ffffff;
-  box-shadow: 0 8px 18px rgba(2, 120, 184, 0.16);
 }
 
 .stock-check-error {

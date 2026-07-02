@@ -15,7 +15,7 @@ import { useCartStore } from '@/stores/cart'
 import { setBasketInfo } from '@/services/basketService'
 import { deleteDocImage, getDocImageUrl, getDocImagesList, saveDocImage } from '@/services/docImageService'
 import { getSalePrintForms, getSalePrintUrl } from '@/services/salesService'
-import { getEnabledSaleDocumentTypes, getSaleDocumentType } from '@/utils/saleDocumentTypes'
+import { getSaleDocumentType, getSaleDocumentTypeFromBasket } from '@/utils/saleDocumentTypes'
 
 const props = defineProps({
   basket: { type: Object, required: true },
@@ -27,8 +27,7 @@ const authStore = useAuthStore()
 const toast = useToast()
 const subStep = ref('items')
 const currentBasket = ref({ ...props.basket })
-const documentTypes = getEnabledSaleDocumentTypes()
-const selectedDocumentTypeKey = ref(documentTypes[0]?.key || 'sale')
+const selectedDocumentTypeKey = ref(getSaleDocumentTypeFromBasket(currentBasket.value).key)
 const selectedDocumentType = computed(() => getSaleDocumentType(selectedDocumentTypeKey.value))
 
 const confirmedInfo = ref(null)
@@ -50,6 +49,7 @@ watch(
   () => props.basket,
   (basket) => {
     currentBasket.value = { ...basket }
+    selectedDocumentTypeKey.value = getSaleDocumentTypeFromBasket(currentBasket.value).key
   },
   { deep: true },
 )
@@ -89,6 +89,7 @@ async function onConfirmDone(info) {
       ...info,
     })
     currentBasket.value = mergedBasket
+    selectedDocumentTypeKey.value = getSaleDocumentTypeFromBasket(mergedBasket).key
     confirmedInfo.value = info
     subStep.value = 'price-check'
   } catch (ex) {
@@ -216,9 +217,7 @@ async function removeDocImage(guidCode) {
   <CartItemsStep
     v-if="subStep === 'items'"
     :basket="currentBasket"
-    :document-types="documentTypes"
     :selected-document-type="selectedDocumentType"
-    @update:selected-document-type="selectedDocumentTypeKey = $event"
     @back="emit('back')"
     @next="onItemsNext"
   />

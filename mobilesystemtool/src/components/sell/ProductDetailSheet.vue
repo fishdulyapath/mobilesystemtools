@@ -18,6 +18,7 @@ import { getItemReservedQty } from '@/services/basketService'
 import { formatCurrency } from '@/utils/formatters'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
+import { getSaleDocumentTypeFromBasket } from '@/utils/saleDocumentTypes'
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -32,6 +33,8 @@ const authStore = useAuthStore()
 
 const cartKey = computed(() => `BASKET-${props.basket.basket_id}`)
 const custCode = computed(() => props.basket.cust_code || '')
+const documentType = computed(() => getSaleDocumentTypeFromBasket(props.basket))
+const requiresStockCheck = computed(() => documentType.value.requiresStock !== false)
 const priceOpts = computed(() => ({
   sale_type: props.basket.inquiry_type,
   vat_type: props.basket.vat_type,
@@ -90,8 +93,16 @@ const effectiveBalance = computed(() => {
 const canOrder = computed(() =>
   !loading.value && !reservedLoading.value && !setItemsLoading.value &&
   selectedUnit.value !== null && price.value !== null &&
-  qty.value > 0,
+  qty.value > 0 &&
+  (!requiresStockCheck.value || isServiceItem.value || qty.value <= effectiveBalance.value),
 )
+
+const stockBlockMessage = computed(() => {
+  if (!requiresStockCheck.value || isServiceItem.value || !selectedUnit.value) return ''
+  if (effectiveBalance.value <= 0) return 'สินค้าหมด ไม่สามารถใส่ตะกร้าได้'
+  if (qty.value > effectiveBalance.value) return `สต๊อกไม่พอ ใส่ได้สูงสุด ${effectiveBalance.value.toLocaleString()} ${selectedUnit.value.unit_code || ''}`
+  return ''
+})
 
 function isServiceUnit(unit) {
   return String(unit?.item_type ?? props.product.item_type ?? '') === '1'
@@ -272,6 +283,14 @@ watch(() => props.visible, async (v) => {
 // ─── add to cart ─────────────────────────────────────────────────────
 async function addToCart() {
   if (adding.value) return
+  if (!canOrder.value) {
+    toast.add({
+      severity: 'warn',
+      summary: stockBlockMessage.value || 'ยังไม่สามารถใส่ตะกร้าได้',
+      life: 2500,
+    })
+    return
+  }
   adding.value = true
   try {
     await cartStore.addItem({
@@ -529,9 +548,9 @@ function resetImagePlaceholder(event) {
               </div>
             </div>
 
-            <div v-if="!isServiceItem && effectiveBalance <= 0 && selectedUnit" class="out-of-stock-banner">
+            <div v-if="stockBlockMessage" class="out-of-stock-banner">
               <i class="pi pi-exclamation-triangle" />
-              ยอดคงเหลือหมด (ยังสามารถใส่ตะกร้าได้)
+              {{ stockBlockMessage }}
             </div>
 
             <div v-if="selectedUnit" class="sheet-section qty-section">
@@ -1077,7 +1096,7 @@ function resetImagePlaceholder(event) {
 @media (max-width: 860px) {
   .sheet-layout {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 0.2rem;
   }
 
   .sheet-body {

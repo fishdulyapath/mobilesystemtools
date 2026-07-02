@@ -1,7 +1,25 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const { query, withTransaction } = require('../db');
 const { successResponse, failResponse } = require('../utils/response');
+
+function normalizeSaleScreenCode(screenCode = '', documentType = '') {
+  const screen = String(screenCode || '').trim().toUpperCase();
+  if (['SI', 'SS', 'SR'].includes(screen)) return screen;
+  if (screen === 'SO') return 'SS';
+  if (screen === 'BS') return 'SR';
+  const type = String(documentType || '').trim();
+  if (type === 'sale_order') return 'SS';
+  if (type === 'reserve_order') return 'SR';
+  return 'SI';
+}
+
+function documentTypeFromScreenCode(screenCode = 'SI') {
+  const screen = String(screenCode || 'SI').trim().toUpperCase();
+  if (screen === 'SS' || screen === 'SO') return 'sale_order';
+  if (screen === 'SR' || screen === 'BS') return 'reserve_order';
+  return 'sale';
+}
 
 // GET /service/v1/getBasketList
 // ดึงรายการตะกร้าทั้งหมด พร้อม item_count และ total_price จาก staff_cart_order
@@ -15,19 +33,37 @@ router.get('/getBasketList', async (req, res) => {
         COALESCE(df.name_1, dd.name_1, '') AS doc_format_name,
         COALESCE(df.format, dd.format, '') AS doc_format,
         COALESCE(NULLIF(b.form_code,''), df.form_code, dd.form_code, '') AS form_code,
+        COALESCE(df.screen_code, dd.screen_code, 'SI') AS document_screen_code,
+        CASE COALESCE(df.screen_code, dd.screen_code, 'SI')
+          WHEN 'SS' THEN 'sale_order'
+          WHEN 'SR' THEN 'reserve_order'
+          WHEN 'SO' THEN 'sale_order'
+          WHEN 'BS' THEN 'reserve_order'
+          ELSE 'sale'
+        END AS document_type,
         COALESCE(c.item_count, 0) AS total_items,
         COALESCE(c.total_price, 0) AS total_price
       FROM pos_basket b
       LEFT JOIN (
-        SELECT code, name_1, format, form_code
+        SELECT code, name_1, format, form_code, screen_code
         FROM erp_doc_format
         WHERE screen_code = 'SI'
         ORDER BY code
         LIMIT 1
       ) dd ON TRUE
-      LEFT JOIN erp_doc_format df
-        ON df.screen_code = 'SI'
-       AND df.code = b.doc_format_code
+      LEFT JOIN LATERAL (
+        SELECT code, name_1, format, form_code, screen_code
+        FROM erp_doc_format
+        WHERE code = b.doc_format_code
+          AND screen_code IN ('SI', 'SS', 'SR', 'SO', 'BS')
+        ORDER BY CASE
+          WHEN screen_code IN ('SS', 'SR') THEN 0
+          WHEN screen_code IN ('SO', 'BS') THEN 1
+          WHEN screen_code = 'SI' THEN 1
+          ELSE 2
+        END
+        LIMIT 1
+      ) df ON TRUE
       LEFT JOIN (
         SELECT cust_code, COUNT(*) AS item_count, SUM(qty * price) AS total_price
         FROM staff_cart_order
@@ -47,13 +83,14 @@ router.get('/getBasketList', async (req, res) => {
 // GET /service/v1/getSaleDocFormatList
 // ดึงรหัสเอกสารขายจาก erp_doc_format สำหรับหน้าตั้งค่าตะกร้า
 router.get('/getSaleDocFormatList', async (req, res) => {
+  const screenCode = normalizeSaleScreenCode(req.query.screen_code, req.query.document_type);
   try {
     const result = await query(
-      `SELECT code, name_1, format, COALESCE(form_code,'') AS form_code
+      `SELECT code, name_1, format, COALESCE(form_code,'') AS form_code, screen_code
        FROM erp_doc_format
-       WHERE screen_code = 'SI'
+       WHERE screen_code = $1
        ORDER BY code`,
-      [],
+      [screenCode],
     );
     return successResponse(res, result.rows);
   } catch (ex) {
@@ -66,7 +103,9 @@ router.get('/getSaleDocFormatList', async (req, res) => {
 // ตั้งค่าข้อมูลตะกร้า — เปิดใช้งาน (status = 'active')
 router.post('/setBasketInfo', async (req, res) => {
   const { basket_id, cust_code = '', cust_name = '', inquiry_type = 1,
-    vat_type = 1, vat_rate = 7.0, sale_code = '', sale_name = '', doc_format_code = '' } = req.body;
+    vat_type = 1, vat_rate = 7.0, sale_code = '', sale_name = '', doc_format_code = '',
+    document_screen_code = '', document_type = '' } = req.body;
+  const screenCode = normalizeSaleScreenCode(document_screen_code, document_type);
 
   if (!basket_id) {
     return failResponse(res, 'basket_id is required', 400);
@@ -79,18 +118,18 @@ router.post('/setBasketInfo', async (req, res) => {
       docFormatRes = await query(
         `SELECT code, COALESCE(form_code,'') AS form_code
          FROM erp_doc_format
-         WHERE screen_code = 'SI' AND code = $1
+         WHERE screen_code = $1 AND code = $2
          LIMIT 1`,
-        [docFormatCode],
+        [screenCode, docFormatCode],
       );
     } else {
       docFormatRes = await query(
         `SELECT code, COALESCE(form_code,'') AS form_code
          FROM erp_doc_format
-         WHERE screen_code = 'SI'
+         WHERE screen_code = $1
          ORDER BY code
          LIMIT 1`,
-        [],
+        [screenCode],
       );
     }
 
@@ -110,7 +149,7 @@ router.post('/setBasketInfo', async (req, res) => {
         sale_code, sale_name, docFormat.code, docFormat.form_code,
       ],
     );
-    return successResponse(res, null);
+    return successResponse(res, { document_type: documentTypeFromScreenCode(screenCode), document_screen_code: screenCode });
   } catch (ex) {
     console.error('setBasketInfo error:', ex.message);
     return failResponse(res, ex.message, 500);
@@ -193,3 +232,6 @@ router.get('/getItemReservedQty', async (req, res) => {
 });
 
 module.exports = router;
+
+
+

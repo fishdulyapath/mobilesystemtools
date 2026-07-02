@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, ref, watch, onMounted } from "vue";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
@@ -8,6 +8,7 @@ import { useToast } from "primevue/usetoast";
 import { getCustomerCredit, getCustomerList } from "@/services/sellService";
 import { getSaleDocFormatList } from "@/services/basketService";
 import { useAuthStore } from "@/stores/auth";
+import { getEnabledSaleDocumentTypes, getSaleDocumentType, getSaleDocumentTypeFromBasket } from "@/utils/saleDocumentTypes";
 import api from "@/services/api";
 
 const toast = useToast();
@@ -18,6 +19,15 @@ const props = defineProps({
 const emit = defineEmits(["done", "back", "clear"]);
 
 const authStore = useAuthStore();
+
+const documentTypes = getEnabledSaleDocumentTypes();
+const documentTypeKey = ref(getSaleDocumentTypeFromBasket(props.basket).key);
+const selectedDocumentType = computed(() => getSaleDocumentType(documentTypeKey.value));
+const documentTypeOptions = computed(() => documentTypes.map((type) => ({
+  label: type.label,
+  value: type.key,
+  icon: type.icon,
+})));
 
 // --- ลูกค้า ---
 const custCode = ref("");
@@ -51,10 +61,11 @@ function setDocFormatCode(code) {
   docFormatCode.value = docFormats.value.some((item) => item.code === nextCode) ? nextCode : firstDocFormatCode();
 }
 
-async function loadDocFormats() {
+async function loadDocFormats(preferredCode = "") {
   docFormatLoading.value = true;
   try {
-    docFormats.value = await getSaleDocFormatList();
+    docFormats.value = await getSaleDocFormatList({ screen_code: selectedDocumentType.value.screenCode });
+    setDocFormatCode(preferredCode || selectedDocumentType.value.docFormatCode);
   } catch (ex) {
     docFormats.value = [];
     toast.add({
@@ -67,6 +78,10 @@ async function loadDocFormats() {
     docFormatLoading.value = false;
   }
 }
+
+watch(documentTypeKey, async () => {
+  await loadDocFormats(selectedDocumentType.value.docFormatCode);
+});
 
 watch(custSearch, (val) => {
   clearTimeout(custDebounce);
@@ -90,16 +105,16 @@ async function selectWalkIn() {
   custSearch.value = "";
   showCustDropdown.value = false;
   try {
-    const results = await getCustomerList("AR0269");
-    const defaultCust = results.find((c) => c.code === "AR0269");
+    const results = await getCustomerList("AR00001");
+    const defaultCust = results.find((c) => c.code === "AR00001");
     if (defaultCust) {
       selectCustomer(defaultCust);
     } else {
-      custCode.value = "AR0269";
+      custCode.value = "AR00001";
       custName.value = "ลูกค้าทั่วไป";
     }
   } catch {
-    custCode.value = "AR0269";
+    custCode.value = "AR00001";
     custName.value = "ลูกค้าทั่วไป";
   }
 }
@@ -205,7 +220,9 @@ function selectEmployee(e) {
 const isEditMode = props.basket.status === "active";
 
 onMounted(async () => {
-  await loadDocFormats();
+  const initialDocumentType = getSaleDocumentTypeFromBasket(props.basket);
+  documentTypeKey.value = initialDocumentType.key;
+  await loadDocFormats(props.basket.doc_format_code || initialDocumentType.docFormatCode);
 
   if (isEditMode) {
     custCode.value = props.basket.cust_code || "";
@@ -215,18 +232,16 @@ onMounted(async () => {
     vatRate.value = props.basket.vat_rate ?? 7.0;
     saleCode.value = props.basket.sale_code || "";
     saleName.value = props.basket.sale_name || "";
-    setDocFormatCode(props.basket.doc_format_code);
   } else {
     const emp = authStore.employee;
     if (emp) {
       saleCode.value = emp.user_code ?? "";
       saleName.value = emp.user_name ?? "";
     }
-    setDocFormatCode("");
 
     try {
-      const results = await getCustomerList("AR0269");
-      const defaultCust = results.find((c) => c.code === "AR0269");
+      const results = await getCustomerList("AR00001");
+      const defaultCust = results.find((c) => c.code === "AR00001");
       if (defaultCust) selectCustomer(defaultCust);
     } catch {
       // fallback เป็น walk-in ตามเดิม
@@ -281,6 +296,11 @@ function confirm() {
     doc_format_name: selectedDocFormat.value?.name_1 || "",
     doc_format: selectedDocFormat.value?.format || "",
     form_code: selectedDocFormat.value?.form_code || "",
+    document_type: selectedDocumentType.value.key,
+    document_label: selectedDocumentType.value.label,
+    document_trans_flag: selectedDocumentType.value.transFlag,
+    document_screen_code: selectedDocumentType.value.screenCode,
+    document_requires_payment: selectedDocumentType.value.requiresPayment,
   });
 }
 </script>
@@ -296,7 +316,7 @@ function confirm() {
       <!-- ลูกค้า -->
       <section class="setup-section">
         <div class="section-label">ลูกค้า</div>
-        <Button label="ลูกค้าทั่วไป" icon="pi pi-user" :outlined="custCode !== 'AR0269'" size="small" class="walkin-btn" @click="selectWalkIn" />
+        <Button label="ลูกค้าทั่วไป" icon="pi pi-user" :outlined="custCode !== 'AR00001'" size="small" class="walkin-btn" @click="selectWalkIn" />
         <div class="search-wrap">
           <InputText v-model="custSearch" placeholder="ค้นหาลูกค้า (รหัส/ชื่อ)..." class="w-full" :loading="custLoading" />
           <div v-if="showCustDropdown" class="dropdown-list">
@@ -313,6 +333,17 @@ function confirm() {
       </section>
 
       <!-- รหัสเอกสาร -->
+      <section class="setup-section">
+        <div class="section-label">ประเภทเอกสาร</div>
+        <SelectButton v-model="documentTypeKey" :options="documentTypeOptions" option-label="label" option-value="value" :allow-empty="false" class="document-type-select">
+          <template #option="{ option }">
+            <i :class="option.icon" />
+            <span>{{ option.label }}</span>
+          </template>
+        </SelectButton>
+      </section>
+
+
       <section class="setup-section">
         <div class="section-label">รหัสเอกสาร</div>
         <Select v-model="docFormatCode" :options="docFormatOptions" option-label="label" option-value="code" placeholder="เลือกรหัสเอกสาร" class="w-full" :loading="docFormatLoading" filter>
@@ -546,6 +577,14 @@ function confirm() {
 }
 .vat-select :deep(.p-selectbutton) {
   flex-wrap: wrap;
+}
+
+.document-type-select :deep(.p-selectbutton) {
+  flex-wrap: wrap;
+}
+
+.document-type-select :deep(.p-togglebutton-content) {
+  gap: 0.35rem;
 }
 
 .credit-panel {

@@ -10,8 +10,8 @@ export async function setBasketInfo(payload) {
   return data
 }
 
-export async function getSaleDocFormatList() {
-  const { data } = await api.get('/getSaleDocFormatList')
+export async function getSaleDocFormatList({ screen_code = 'SI' } = {}) {
+  const { data } = await api.get('/getSaleDocFormatList', { params: { screen_code } })
   return data.data || []
 }
 

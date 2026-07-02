@@ -3813,7 +3813,7 @@ paths:
               doc_time: "14:30:00"
               doc_format_code: "SI"
               form_code: ""
-              cust_code: "AR0269"
+              cust_code: "AR00001"
               branch_code: ""
               emp_code: "SALE01"
               creator_code: "SALE01"

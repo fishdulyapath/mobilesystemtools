@@ -49,7 +49,7 @@ function toggleMenu(event) {
         <i class="pi pi-bars" />
       </button>
       <span class="topbar-brand">
-        <img src="/fishsoft-icons/fishsoft-icon-32x32.png" alt="" class="brand-mark" />
+  
         MobileTools
       </span>
     </div>

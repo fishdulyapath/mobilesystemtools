@@ -44,7 +44,6 @@ async function handleLogin() {
           <img src="/fishsoft-icons/fishsoft-icon-192x192.png" alt="" class="login-logo" />
         </div>
         <h2 class="login-title">MobileTools</h2>
-        <p class="login-subtitle">ระบบช่วยขาย</p>
       </div>
     </template>
 

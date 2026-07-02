@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, ref, onMounted, watch } from "vue";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
@@ -6,6 +6,7 @@ import Textarea from "primevue/textarea";
 import SelectButton from "primevue/selectbutton";
 import { useAuthStore } from "@/stores/auth";
 import { getCustomerCredit, getCustomerList } from "@/services/sellService";
+import { getSaleDocumentTypeFromBasket } from "@/utils/saleDocumentTypes";
 import api from "@/services/api";
 
 const props = defineProps({
@@ -40,6 +41,7 @@ const orderRemark = ref("");
 const docFormatCode = ref(initialInfo.doc_format_code || "");
 const docFormatName = ref(initialInfo.doc_format_name || "");
 const formCode = ref(initialInfo.form_code || "");
+const documentType = getSaleDocumentTypeFromBasket(initialInfo);
 
 // ลูกค้า (แก้ไขได้)
 const custCode = ref(initialInfo.cust_code || "");
@@ -108,8 +110,8 @@ function onCustSearchInput(val) {
 }
 
 function selectWalkIn() {
-  custCode.value = "AR0269";
-  custName.value = "สด ทั่วไป";
+  custCode.value = "AR00001";
+  custName.value = "ลูกค้าทั่วไป";
   custSearch.value = "";
   showCustDropdown.value = false;
   custEditing.value = false;
@@ -189,6 +191,11 @@ function confirm() {
     doc_format_code: docFormatCode.value,
     doc_format_name: docFormatName.value,
     form_code: formCode.value,
+    document_type: documentType.key,
+    document_label: documentType.label,
+    document_trans_flag: documentType.transFlag,
+    document_screen_code: documentType.screenCode,
+    document_requires_payment: documentType.requiresPayment,
     order_remark: orderRemark.value,
   });
 }
@@ -226,7 +233,7 @@ function confirm() {
           <Button
             label="ลูกค้าทั่วไป"
             icon="pi pi-user"
-            :outlined="custCode !== 'AR0269'"
+            :outlined="custCode !== 'AR00001'"
             size="small"
             class="walkin-btn"
             @click="selectWalkIn"
@@ -258,8 +265,9 @@ function confirm() {
       <section class="conf-section">
         <div class="section-label">รหัสเอกสาร</div>
         <div class="readonly-badge">
-          <i class="pi pi-file" />
-          <span>{{ docFormatCode || '-' }}</span>
+          <i :class="documentType.icon" />
+          <span>{{ documentType.label }}</span>
+          <span class="meta-code">{{ docFormatCode || '-' }}</span>
           <span v-if="docFormatName" class="meta-code">{{ docFormatName }}</span>
         </div>
       </section>

@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const { query, withTransaction } = require('../db');
@@ -23,7 +23,7 @@ const SALE_DOCUMENT_TYPES = {
     key: 'sale_order',
     transFlag: 36,
     screenCode: 'SS',
-    defaultDocFormatCode: 'SO',
+    defaultDocFormatCode: '',
     requiresStock: true,
     requiresPayment: false,
     detailCalcFlag: 1,
@@ -32,7 +32,7 @@ const SALE_DOCUMENT_TYPES = {
     key: 'reserve_order',
     transFlag: 34,
     screenCode: 'SR',
-    defaultDocFormatCode: 'BS',
+    defaultDocFormatCode: '',
     requiresStock: false,
     requiresPayment: false,
     detailCalcFlag: 1,
@@ -41,8 +41,8 @@ const SALE_DOCUMENT_TYPES = {
 
 function resolveSaleDocumentType(value) {
   const key = String(value || 'sale').trim();
-  if (key === 'order' || key === 'so') return SALE_DOCUMENT_TYPES.sale_order;
-  if (key === 'reserve' || key === 'booking' || key === 'bs') return SALE_DOCUMENT_TYPES.reserve_order;
+  if (key === 'order' || key === 'so' || key === 'ss') return SALE_DOCUMENT_TYPES.sale_order;
+  if (key === 'reserve' || key === 'booking' || key === 'bs' || key === 'sr') return SALE_DOCUMENT_TYPES.reserve_order;
   return SALE_DOCUMENT_TYPES[key] || SALE_DOCUMENT_TYPES.sale;
 }
 
@@ -197,22 +197,23 @@ async function resolveDocNo(client, posId, transFlag) {
   return resolveDocNoFromPattern(client, pattern, transFlag);
 }
 
-async function resolveSaleDocFormat(client, docFormatCode) {
+async function resolveSaleDocFormat(client, docFormatCode, screenCode = 'SI') {
   const code = String(docFormatCode || '').trim();
   const result = code
     ? await client.query(
       `SELECT code, name_1, format, COALESCE(form_code,'') AS form_code
        FROM erp_doc_format
-       WHERE screen_code = 'SI' AND code = $1
+       WHERE screen_code = $1 AND code = $2
        LIMIT 1`,
-      [code]
+      [screenCode, code]
     )
     : await client.query(
       `SELECT code, name_1, format, COALESCE(form_code,'') AS form_code
        FROM erp_doc_format
-       WHERE screen_code = 'SI'
+       WHERE screen_code = $1
        ORDER BY code
-       LIMIT 1`
+       LIMIT 1`,
+      [screenCode]
     );
 
   const docFormat = result.rows[0];
@@ -220,8 +221,8 @@ async function resolveSaleDocFormat(client, docFormatCode) {
   return docFormat;
 }
 
-async function resolveSaleDocNo(client, docFormatCode, transFlag) {
-  const docFormat = await resolveSaleDocFormat(client, docFormatCode);
+async function resolveSaleDocNo(client, docFormatCode, transFlag, screenCode = 'SI') {
+  const docFormat = await resolveSaleDocFormat(client, docFormatCode, screenCode);
   const pattern = buildDocPattern(docFormat.format || '@-YYMM####', docFormat.code);
   const docNo = await resolveDocNoFromPattern(client, pattern, transFlag);
   return {
@@ -569,7 +570,8 @@ router.get('/getLastDocNo', async (req, res) => {
     let pattern;
     let resolvedDocFormatCode = '';
     if (doc_format_code) {
-      const docFormat = await resolveSaleDocFormat({ query }, doc_format_code);
+      const docType = Object.values(SALE_DOCUMENT_TYPES).find((type) => type.transFlag === tf) || SALE_DOCUMENT_TYPES.sale;
+      const docFormat = await resolveSaleDocFormat({ query }, doc_format_code, docType.screenCode);
       resolvedDocFormatCode = docFormat.code;
       pattern = buildDocPattern(docFormat.format || '@-YYMM####', docFormat.code);
     } else {
@@ -716,7 +718,7 @@ async function handleSaveTrans(req, res, options = {}) {
     const doc_time = obj.doc_time || '';
     let doc_format_code = String(obj.doc_format_code || '').trim();
     let form_code = String(obj.form_code || '').trim();
-    const cust_code = obj.cust_code || 'AR0269';
+    const cust_code = obj.cust_code || 'AR00001';
     const branch_code = obj.branch_code || '';
     const emp_code = obj.emp_code || '';
     const creator_code = String(obj.creator_code || '').trim();
@@ -826,7 +828,7 @@ async function handleSaveTrans(req, res, options = {}) {
         }
       }
 
-      if (basket_id && documentType.key === 'sale' && (!doc_format_code || !form_code)) {
+      if (basket_id && (!doc_format_code || !form_code)) {
         const basketDocRes = await client.query(
           `SELECT COALESCE(doc_format_code,'') AS doc_format_code,
                   COALESCE(form_code,'') AS form_code
@@ -841,7 +843,7 @@ async function handleSaveTrans(req, res, options = {}) {
 
       // 1. Generate doc_no
       const saleDoc = documentType.key === 'sale'
-        ? await resolveSaleDocNo(client, doc_format_code, transFlag)
+        ? await resolveSaleDocNo(client, doc_format_code, transFlag, documentType.screenCode)
         : await resolveDocumentNo(client, {
           screenCode: documentType.screenCode,
           docFormatCode: doc_format_code || documentType.defaultDocFormatCode,
@@ -1613,3 +1615,8 @@ router.get('/getDocSaleHistoryDetail', async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

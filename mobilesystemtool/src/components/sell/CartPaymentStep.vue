@@ -52,7 +52,8 @@ function stockIssueSummary(issues = []) {
 
 const activeDocumentType = computed(() => props.documentType || getSaleDocumentType(props.orderData.document_type))
 const requiresPayment = computed(() => activeDocumentType.value.requiresPayment !== false)
-const isCreditSale = computed(() => requiresPayment.value && [0, 2].includes(Number(props.orderData.inquiry_type)))
+const hasCreditTerms = computed(() => [0, 2].includes(Number(props.orderData.inquiry_type)))
+const isCreditSale = computed(() => requiresPayment.value && hasCreditTerms.value)
 const paymentTitle = computed(() => (requiresPayment.value ? 'รับชำระเงิน' : `บันทึก${activeDocumentType.value.label}`))
 
 const saleTypeLabel = computed(() => {
@@ -83,6 +84,36 @@ const totalPaid = computed(() => rnd(paymentEntries.value.reduce((s, e) => s + e
 const totalDue = computed(() => rnd(Number(props.orderData.total_amount) || 0, 2))
 const remaining = computed(() => Math.max(0, rnd(totalDue.value - totalPaid.value - (roundedAmount.value || 0), 2)))
 const change = computed(() => Math.max(0, rnd(totalPaid.value + (roundedAmount.value || 0) - totalDue.value, 2)))
+
+const reviewDocFormatCode = computed(() => (
+  props.orderData.doc_format_code
+  || props.basket.doc_format_code
+  || activeDocumentType.value.docFormatCode
+  || ''
+))
+const reviewDocFormatName = computed(() => props.orderData.doc_format_name || props.basket.doc_format_name || '')
+const vatTypeLabel = computed(() => {
+  const type = Number(props.orderData.vat_type)
+  if (type === 0) return 'แยกนอก'
+  if (type === 1) return 'รวมใน'
+  if (type === 2) return 'ศูนย์'
+  if (type === 3) return 'ไม่กระทบ'
+  return '-'
+})
+const basketReviewRows = computed(() => cartStore.items.map(item => {
+  const fresh = props.orderData.fresh_prices?.[item.guid_code] || {}
+  const unitPrice = Number(fresh.price ?? item.price ?? 0)
+  const discountWord = props.orderData.effective_item_discounts?.[item.guid_code] ?? fresh.default_discount ?? ''
+  const { discount_amount, sum_amount } = calcDiscountAmount(unitPrice, item.qty, discountWord)
+  return {
+    ...item,
+    review_price: unitPrice,
+    review_discount: discountWord,
+    review_discount_amount: Number(discount_amount) || 0,
+    review_sum_amount: Number(sum_amount) || 0,
+  }
+}))
+const basketReviewQty = computed(() => basketReviewRows.value.reduce((sum, item) => sum + Number(item.qty || 0), 0))
 
 function paymentEntryIcon(type) {
   if (type === 'cash') return 'pi pi-money-bill'
@@ -434,9 +465,9 @@ function buildSaveBody({ tigerPending = false } = {}) {
   const transfers = requiresPayment.value ? paymentEntries.value.filter(e => e.type === 'transfer') : []
   const credits = requiresPayment.value ? paymentEntries.value.filter(e => e.type === 'credit') : []
   const deposits = requiresPayment.value ? paymentEntries.value.filter(e => e.type === 'deposit') : []
-  const docFormatCode = activeDocumentType.value.docFormatCode
-    || props.orderData.doc_format_code
+  const docFormatCode = props.orderData.doc_format_code
     || props.basket.doc_format_code
+    || activeDocumentType.value.docFormatCode
     || pos?.doc_format_code
     || ''
 
@@ -452,7 +483,7 @@ function buildSaveBody({ tigerPending = false } = {}) {
     doc_format_code: docFormatCode,
     form_code: props.orderData.form_code || props.basket.form_code || '',
     branch_code: pos?.branch_code || '',
-    cust_code: props.orderData.cust_code || 'AR0269',
+    cust_code: props.orderData.cust_code || 'AR00001',
     emp_code: props.orderData.sale_code,
     shelf_code: pos?.pos_ic_shelf || '',
     remark: props.orderData.order_remark || '',
@@ -587,25 +618,75 @@ async function saveTigerPending() {
     </div>
 
     <template v-if="!requiresPayment">
-      <div class="credit-body">
-        <div class="credit-total-card">
-          <div class="credit-total-label">{{ activeDocumentType.label }}</div>
-          <div class="credit-total-value">{{ formatCurrency(totalDue) }}</div>
-          <div class="credit-badge">
-            <i :class="activeDocumentType.icon" />
-            {{ saleTypeLabel || 'เอกสารขาย' }}
+      <div class="credit-body document-review-body">
+        <section class="basket-review-card">
+          <div class="basket-review-head">
+            <div>
+              <div class="basket-review-title">
+                <i class="pi pi-shopping-cart" />
+                ตรวจสอบข้อมูลตะกร้า #{{ basket.basket_id }}
+              </div>
+              <div class="basket-review-subtitle">{{ basketReviewRows.length }} รายการ · รวม {{ basketReviewQty.toLocaleString() }} หน่วย</div>
+            </div>
+            <span class="basket-review-doc">{{ activeDocumentType.label }}</span>
           </div>
-        </div>
-        <div class="credit-term-card">
-          <div>
-            <span>จำนวนวันเครดิต</span>
-            <strong>{{ Number(orderData.credit_day || 0) }} วัน</strong>
+
+          <div class="basket-review-grid">
+            <div>
+              <span>รหัสเอกสาร</span>
+              <strong>{{ reviewDocFormatCode || '-' }}</strong>
+              <small v-if="reviewDocFormatName">{{ reviewDocFormatName }}</small>
+            </div>
+            <div>
+              <span>ลูกค้า</span>
+              <strong>{{ orderData.cust_name || 'ลูกค้าทั่วไป' }}</strong>
+              <small>{{ orderData.cust_code || 'AR00001' }}</small>
+            </div>
+            <div v-if="hasCreditTerms">
+              <span>เครดิตลูกค้า</span>
+              <strong>{{ Number(orderData.credit_day || 0) }} วัน</strong>
+              <small>วันที่เครดิต {{ formatCreditDate(orderData.credit_date) }}</small>
+            </div>
+            <div>
+              <span>ประเภทการขาย</span>
+              <strong>{{ saleTypeLabel || '-' }}</strong>
+            </div>
+            <div>
+              <span>ภาษี</span>
+              <strong>{{ vatTypeLabel }}</strong>
+              <small>{{ Number(orderData.vat_rate || 0).toLocaleString() }}%</small>
+            </div>
+            <div>
+              <span>พนักงานขาย</span>
+              <strong>{{ orderData.sale_name || '-' }}</strong>
+              <small v-if="orderData.sale_code">{{ orderData.sale_code }}</small>
+            </div>
           </div>
-          <div>
-            <span>วันที่เครดิต</span>
-            <strong>{{ formatCreditDate(orderData.credit_date) }}</strong>
+
+          <div v-if="orderData.order_remark" class="basket-review-remark">
+            <span>หมายเหตุ</span>
+            <strong>{{ orderData.order_remark }}</strong>
           </div>
-        </div>
+
+          <div class="basket-review-total">
+            <div>
+              <span>มูลค่าสินค้า</span>
+              <strong>{{ formatCurrency(Number(orderData.total_value || 0)) }}</strong>
+            </div>
+            <div v-if="Number(orderData.total_discount || 0)">
+              <span>ส่วนลดรวม</span>
+              <strong>-{{ formatCurrency(Number(orderData.total_discount || 0)) }}</strong>
+            </div>
+            <div>
+              <span>ภาษี</span>
+              <strong>{{ formatCurrency(Number(orderData.vat_value || 0)) }}</strong>
+            </div>
+            <div class="grand-total">
+              <span>ยอดสุทธิ</span>
+              <strong>{{ formatCurrency(totalDue) }}</strong>
+            </div>
+          </div>
+        </section>
       </div>
     </template>
 
@@ -1174,6 +1255,140 @@ async function saveTigerPending() {
   font-size: 0.98rem;
 }
 
+.document-review-body {
+  justify-content: flex-start;
+  align-items: stretch;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 1rem;
+}
+
+.basket-review-card {
+  width: min(100%, 680px);
+  align-self: center;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--app-shadow-subtle, 0 8px 22px rgba(2, 132, 199, 0.08));
+  overflow: hidden;
+}
+
+.basket-review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(180deg, #f5fbff 0%, #ffffff 100%);
+  border-bottom: 1px solid var(--app-blue-line, #c7e7fa);
+}
+
+.basket-review-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--app-blue-ink, #075985);
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.basket-review-subtitle {
+  margin-top: 0.18rem;
+  color: var(--p-text-color-secondary);
+  font-size: 0.78rem;
+}
+
+.basket-review-doc {
+  flex-shrink: 0;
+  max-width: 100%;
+  border: 1px solid var(--app-blue-line, #c7e7fa);
+  border-radius: 999px;
+  background: #eaf7ff;
+  color: var(--p-primary-color);
+  padding: 0.22rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.basket-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+}
+
+.basket-review-grid div,
+.basket-review-remark {
+  min-width: 0;
+  border: 1px solid #eef6fc;
+  border-radius: 8px;
+  background: #fbfdff;
+  padding: 0.55rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+}
+
+.basket-review-grid span,
+.basket-review-remark span {
+  color: var(--p-text-color-secondary);
+  font-size: 0.72rem;
+}
+
+.basket-review-grid strong,
+.basket-review-remark strong {
+  min-width: 0;
+  color: var(--p-text-color);
+  font-size: 0.88rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.basket-review-grid small {
+  color: var(--p-text-color-secondary);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.basket-review-remark {
+  margin: 0 1rem 0.85rem;
+}
+
+.basket-review-total {
+  padding: 0.75rem 1rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  background: #fbfdff;
+}
+
+.basket-review-total div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--p-text-color-secondary);
+  font-size: 0.82rem;
+}
+
+.basket-review-total strong {
+  color: var(--p-text-color);
+  font-size: 0.88rem;
+}
+
+.basket-review-total .grand-total {
+  margin-top: 0.2rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed var(--app-blue-line, #c7e7fa);
+  color: var(--p-text-color);
+  font-weight: 700;
+}
+
+.basket-review-total .grand-total strong {
+  color: var(--p-primary-color);
+  font-size: 1.08rem;
+}
+
 .summary-bar {
   display: flex;
   justify-content: space-between;
@@ -1629,6 +1844,47 @@ async function saveTigerPending() {
 }
 
 @media (max-width: 640px) {
+  .document-review-body {
+    padding: 0.75rem;
+  }
+
+  .basket-review-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .basket-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    padding: 0.65rem;
+  }
+
+  .basket-review-grid div,
+  .basket-review-remark {
+    padding: 0.5rem;
+  }
+
+  .basket-review-grid strong,
+  .basket-review-remark strong {
+    font-size: 0.82rem;
+  }
+
+  .basket-review-grid small {
+    font-size: 0.68rem;
+  }
+
+  .basket-review-remark {
+    margin: 0 0.65rem 0.65rem;
+  }
+
+  .basket-review-total {
+    padding: 0.65rem;
+  }
+
+  .basket-review-total strong {
+    text-align: right;
+  }
+
   .deposit-doc-list {
     grid-template-columns: 1fr;
   }
