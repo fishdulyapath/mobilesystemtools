@@ -12,23 +12,42 @@ const posStore = usePosStore();
 
 const menuGroups = [
   {
-    title: "ตะกร้าสินค้า",
+    title: "ภาพรวม",
+    items: [
+      { label: "แดชบอร์ด", icon: "pi pi-home", to: "/dashboard" },
+    ],
+  },
+  {
+    title: "ธุรกรรม",
     items: [
       { label: "ตะกร้าสินค้า", icon: "pi pi-shopping-cart", to: "/sell", permission: PERMISSIONS.sellView },
+      { label: "ซื้อ/ตั้งหนี้", icon: "pi pi-file-import", to: "/purchase/pu", base: "/purchase/pu", permission: PERMISSIONS.purchasePuView },
+      { label: "รับคืนสินค้า/ลดหนี้", icon: "pi pi-undo", to: "/sales/return", permission: PERMISSIONS.salesReturnView },
+      { label: "รับเงินล่วงหน้า", icon: "pi pi-wallet", to: "/sales/advance-payment", permission: PERMISSIONS.salesAdvancePaymentView },
+      { label: "ใบวางบิล (ลูกหนี้)", icon: "pi pi-file-check", to: "/sales/ar-billing", permission: PERMISSIONS.salesArBillingView },
+      { label: "รับชำระหนี้/ใบเสร็จ", icon: "pi pi-receipt", to: "/sales/ar-debt-payment", permission: PERMISSIONS.salesArDebtPaymentView },
+      { label: "ค่าใช้จ่ายอื่นๆ", icon: "pi pi-receipt", to: "/cash/other-expense", permission: PERMISSIONS.cashOtherExpenseCreate },
     ],
   },
   {
-    title: "ประวัติ",
+    title: "ประวัติ / รายงาน",
     items: [
-      { label: "ประวัติการขาย", icon: "pi pi-receipt", to: "/sales-history", anyPermissions: [PERMISSIONS.salesCashView, PERMISSIONS.salesCreditView] },
-      { label: "ประวัติใบสั่งซื้อ-สั่งจอง", icon: "pi pi-bookmark", to: "/sales-history/reserve-order", permission: PERMISSIONS.sellView },
-      { label: "ประวัติใบสั่งขาย", icon: "pi pi-file-edit", to: "/sales-history/sale-order", permission: PERMISSIONS.sellView },
+      { label: "ประวัติขายเงินสด", icon: "pi pi-money-bill", to: "/sales-history/cash", permission: PERMISSIONS.salesCashView },
+      { label: "ประวัติขายเงินเชื่อ", icon: "pi pi-credit-card", to: "/sales-history/credit", permission: PERMISSIONS.salesCreditView },
+      { label: "ประวัติขายตามสินค้า", icon: "pi pi-list", to: "/sales-history/by-product", permission: PERMISSIONS.salesProductHistoryView },
+      { label: "สินค้าขายหมด", icon: "pi pi-exclamation-circle", to: "/sold-out", permission: PERMISSIONS.soldOutView },
+      { label: "ดูสต๊อกสินค้าเพื่อสั่งซื้อ", icon: "pi pi-list-check", to: "/purchase/stock-reorder", permission: PERMISSIONS.purchaseStockReorderView },
+      { label: "ประวัติรับเงินล่วงหน้า", icon: "pi pi-history", to: "/sales/advance-payment/history", permission: PERMISSIONS.salesAdvancePaymentHistoryView },
+      { label: "ประวัติใบวางบิล", icon: "pi pi-list", to: "/sales/ar-billing/history", permission: PERMISSIONS.salesArBillingView },
+      { label: "ประวัติรับชำระหนี้", icon: "pi pi-history", to: "/sales/ar-debt-payment/history", permission: PERMISSIONS.salesArDebtPaymentHistoryView },
+      { label: "ประวัติค่าใช้จ่ายอื่นๆ", icon: "pi pi-receipt", to: "/cash/other-expense/history", permission: PERMISSIONS.cashOtherExpenseView },
     ],
   },
   {
-    title: "จัดการคลัง",
+    title: "สินค้า / คลัง",
     items: [
-      { label: "จัดการคลัง", icon: "pi pi-box", to: "/inventory", permission: PERMISSIONS.inventoryView },
+      { label: "คลังสินค้า", icon: "pi pi-box", to: "/inventory", permission: PERMISSIONS.inventoryView },
+      { label: "จัดการสินค้า", icon: "pi pi-tag", to: "/products", base: "/products", permission: PERMISSIONS.productView },
     ],
   },
   {
