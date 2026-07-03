@@ -49,7 +49,9 @@ function toggleMenu(event) {
         <i class="pi pi-bars" />
       </button>
       <span class="topbar-brand">
-  
+        <span>
+          <img src="@/assets/applogo.png" alt="MobileTools" class="brand-mark" /> 
+        </span>
         MobileTools
       </span>
     </div>

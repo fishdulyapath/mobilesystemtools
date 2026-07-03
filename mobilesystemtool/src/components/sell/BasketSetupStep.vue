@@ -444,7 +444,7 @@ function confirm() {
       </div>
     </div>
 
-    <div class="setup-footer"></div>
+
   </div>
 </template>
 

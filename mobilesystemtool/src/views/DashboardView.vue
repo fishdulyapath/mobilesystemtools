@@ -6,15 +6,13 @@ import { PERMISSIONS } from '@/utils/permissions'
 import PosInfoCard from '@/components/dashboard/PosInfoCard.vue'
 import SalesSummaryCard from '@/components/dashboard/SalesSummaryCard.vue'
 import TopProductsCard from '@/components/dashboard/TopProductsCard.vue'
-import TopCustomersCard from '@/components/dashboard/TopCustomersCard.vue'
-import TopSalesmenCard from '@/components/dashboard/TopSalesmenCard.vue'
-import SoldOutCard from '@/components/dashboard/SoldOutCard.vue'
+import LatestBillsCard from '@/components/dashboard/LatestBillsCard.vue'
+import WeeklySalesChartCard from '@/components/dashboard/WeeklySalesChartCard.vue'
 import TigerPendingAlert from '@/components/dashboard/TigerPendingAlert.vue'
 
 const posStore = usePosStore()
 const authStore = useAuthStore()
 
-const canViewSoldOutReport = computed(() => authStore.hasPermission(PERMISSIONS.dashboardSoldOutReport))
 const canViewMonthlySummary = computed(() => authStore.hasPermission(PERMISSIONS.dashboardMonthlySummary))
 
 async function refresh() {
@@ -31,22 +29,21 @@ onActivated(refresh)
 
     <h1 class="page-title">แดชบอร์ด</h1>
 
-    <!-- row 1: POS info + ยอดขายวันนี้ + สินค้าขายหมด -->
-    <div class="dashboard-grid top-grid" :class="{ 'top-grid-no-soldout': !canViewSoldOutReport }">
+    <!-- row 1: POS info + ยอดขายวันนี้ + บิลล่าสุด -->
+    <div class="dashboard-grid top-grid">
       <PosInfoCard />
       <SalesSummaryCard />
-      <SoldOutCard v-if="canViewSoldOutReport" />
+      <LatestBillsCard />
     </div>
 
-    <!-- row 2: ranking cards -->
+    <!-- row 2: สินค้าขายดี + กราฟยอดขายสัปดาห์นี้ -->
     <p v-if="canViewMonthlySummary" class="section-label">
       <i class="pi pi-chart-bar" />
       สรุปยอดประจำเดือน
     </p>
     <div v-if="canViewMonthlySummary" class="dashboard-grid rank-grid">
       <TopProductsCard />
-      <TopCustomersCard />
-      <TopSalesmenCard />
+      <WeeklySalesChartCard />
     </div>
   </div>
 </template>
@@ -84,18 +81,10 @@ onActivated(refresh)
   margin-bottom: 1.5rem;
 }
 
-/* ─── row 1: PosInfo (fixed) + SalesSummary + SoldOut ─────
-   PosInfo capped at 280px so it doesn't dominate. ยอดขายวันนี้
-   ลดขนาดลงโดยให้กว้าง minmax(0,1.1fr) ส่วน SoldOut ได้พื้นที่
-   1.4fr เพื่อแสดงรายการสินค้าขายหมดได้ชัดเจน
-*/
+/* row 1: POS info + today sales + latest bills */
 .top-grid {
-  grid-template-columns: 280px minmax(0, 1.1fr) minmax(0, 1.4fr);
+  grid-template-columns: 280px minmax(0, 1fr) minmax(0, 1.25fr);
   align-items: stretch;
-}
-
-.top-grid-no-soldout {
-  grid-template-columns: 280px minmax(0, 1fr);
 }
 
 .top-grid > * {
@@ -121,12 +110,12 @@ onActivated(refresh)
   min-height: 0;
 }
 
-/* ─── row 2: three equal columns ────────────────────────── */
+/* row 2: top products + weekly sales chart */
 .rank-grid {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
 }
 
-/* ─── tablet: stack sold-out below the first two ───────── */
+/* tablet: stack the latest bills card below the first two */
 @media (max-width: 1199px) {
   .top-grid {
     grid-template-columns: 280px 1fr;
@@ -134,9 +123,13 @@ onActivated(refresh)
   .top-grid > :nth-child(3) {
     grid-column: 1 / -1;
   }
+
+  .rank-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* ─── collapse to single column on mobile ────────────────── */
+/* collapse to single column on mobile */
 @media (max-width: 767px) {
   .page-title {
     font-size: 1.25rem;
