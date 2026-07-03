@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { getCategoryList, getProductByBarcode, getProductList, getProductPrice, getProductSetDetail } from '@/services/sellService'
+import { getProductByBarcode, getProductLevelList, getProductList, getProductPrice, getProductSetDetail } from '@/services/sellService'
 import { formatCurrency } from '@/utils/formatters'
 import { useCartStore } from '@/stores/cart'
 import { useToast } from 'primevue/usetoast'
@@ -35,6 +35,7 @@ const custCode = computed(() => props.basket.cust_code || '')
 
 const search = ref('')
 const activeCategory = ref('')
+const activeLevel2 = ref('')
 const showOnlyInStock = ref(true)
 let searchTimer = null
 let suppressNextSearchReload = false
@@ -42,9 +43,15 @@ let searchRunId = 0
 let listGeneration = 0
 
 const categories = ref([])
+const level2Categories = computed(() => {
+  if (!activeCategory.value || activeCategory.value === 'promo') return []
+  const found = categories.value.find(cat => cat.level_1 === activeCategory.value)
+  return found ? (found.level_2_list || []).filter(level => level && level.trim()) : []
+})
+const showLevel2Categories = computed(() => level2Categories.value.length > 0)
 
 async function loadCategories() {
-  try { categories.value = await getCategoryList() } catch { categories.value = [] }
+  try { categories.value = await getProductLevelList() } catch { categories.value = [] }
 }
 
 const LIMIT = 30
@@ -70,7 +77,8 @@ async function loadBatch() {
   try {
     const batch = await getProductList({
       cust_code: custCode.value,
-      category: activeCategory.value === 'promo' ? '' : activeCategory.value,
+      level_1: activeCategory.value === 'promo' ? '' : activeCategory.value,
+      level_2: activeCategory.value === 'promo' ? '' : activeLevel2.value,
       isstock: showOnlyInStock.value ? '1' : '',
       ispromotion: activeCategory.value === 'promo' ? '1' : '',
       exclude_hold_sale: '1',
@@ -102,6 +110,16 @@ function isSoldOut(product) {
 function setStockFilter(onlyInStock) {
   if (showOnlyInStock.value === onlyInStock) return
   showOnlyInStock.value = onlyInStock
+}
+
+function selectCategory(code) {
+  if (activeCategory.value === code) return
+  activeCategory.value = code
+  activeLevel2.value = ''
+}
+
+function selectLevel2(code) {
+  activeLevel2.value = code
 }
 
 async function loadBarcodeResult(barcode, { open = false } = {}) {
@@ -208,7 +226,7 @@ function reloadProducts() {
   loadBatch()
 }
 
-watch(activeCategory, reloadProducts)
+watch([activeCategory, activeLevel2], reloadProducts)
 watch(showOnlyInStock, reloadProducts)
 
 watch(search, () => {
@@ -272,17 +290,28 @@ async function openDetail(p) {
 
       <!-- mobile: horizontal category tabs -->
       <div class="category-tabs mobile-cats">
-        <button class="cat-tab" :class="{ active: activeCategory === '' }" @click="activeCategory = ''">ทั้งหมด</button>
-        <button class="cat-tab" :class="{ active: activeCategory === 'promo' }" @click="activeCategory = 'promo'">
+        <button class="cat-tab" :class="{ active: activeCategory === '' }" @click="selectCategory('')">ทั้งหมด</button>
+        <button class="cat-tab" :class="{ active: activeCategory === 'promo' }" @click="selectCategory('promo')">
           <i class="pi pi-tag" /> โปรโมชั่น
         </button>
         <button
           v-for="cat in categories"
-          :key="cat.code"
+          :key="cat.level_1"
           class="cat-tab"
-          :class="{ active: activeCategory === cat.code }"
-          @click="activeCategory = cat.code"
-        >{{ cat.name }}</button>
+          :class="{ active: activeCategory === cat.level_1 }"
+          @click="selectCategory(cat.level_1)"
+        >{{ cat.level_1 }}</button>
+      </div>
+
+      <div v-if="showLevel2Categories" class="category-tabs subcategory-tabs mobile-cats">
+        <button class="cat-tab sub-cat-tab" :class="{ active: activeLevel2 === '' }" @click="selectLevel2('')">ทั้งหมด</button>
+        <button
+          v-for="cat in level2Categories"
+          :key="cat"
+          class="cat-tab sub-cat-tab"
+          :class="{ active: activeLevel2 === cat }"
+          @click="selectLevel2(cat)"
+        >{{ cat }}</button>
       </div>
 
       <div class="filter-row">
@@ -334,24 +363,34 @@ async function openDetail(p) {
 
       <!-- desktop: vertical category sidebar -->
       <aside class="category-sidebar desktop-cats">
-        <button class="side-tab" :class="{ active: activeCategory === '' }" @click="activeCategory = ''">
+        <button class="side-tab" :class="{ active: activeCategory === '' }" @click="selectCategory('')">
           <i class="pi pi-th-large" />
           <span>ทั้งหมด</span>
         </button>
-        <button class="side-tab" :class="{ active: activeCategory === 'promo' }" @click="activeCategory = 'promo'">
+        <button class="side-tab" :class="{ active: activeCategory === 'promo' }" @click="selectCategory('promo')">
           <i class="pi pi-tag" />
           <span>โปรโมชั่น</span>
         </button>
-        <button
-          v-for="cat in categories"
-          :key="cat.code"
-          class="side-tab"
-          :class="{ active: activeCategory === cat.code }"
-          @click="activeCategory = cat.code"
-        >
-          <i class="pi pi-folder" />
-          <span>{{ cat.name }}</span>
-        </button>
+        <template v-for="cat in categories" :key="cat.level_1">
+          <button
+            class="side-tab"
+            :class="{ active: activeCategory === cat.level_1 }"
+            @click="selectCategory(cat.level_1)"
+          >
+            <i class="pi pi-folder" />
+            <span>{{ cat.level_1 }}</span>
+          </button>
+          <div v-if="activeCategory === cat.level_1 && level2Categories.length > 0" class="side-sub-tabs">
+            <button class="side-sub-tab" :class="{ active: activeLevel2 === '' }" @click="selectLevel2('')">ทั้งหมด</button>
+            <button
+              v-for="sub in level2Categories"
+              :key="sub"
+              class="side-sub-tab"
+              :class="{ active: activeLevel2 === sub }"
+              @click="selectLevel2(sub)"
+            >{{ sub }}</button>
+          </div>
+        </template>
       </aside>
 
       <!-- product area -->
@@ -509,6 +548,11 @@ async function openDetail(p) {
 
 .mobile-cats::-webkit-scrollbar { display: none; }
 
+.subcategory-tabs {
+  margin-top: -0.35rem;
+  padding-top: 0.1rem;
+}
+
 .cat-tab {
   flex-shrink: 0;
   padding: 0.3125rem 0.875rem;
@@ -529,6 +573,12 @@ async function openDetail(p) {
   color: #fff;
   border-color: var(--p-primary-color);
   box-shadow: 0 8px 18px rgba(2, 120, 184, 0.16);
+}
+
+.sub-cat-tab {
+  padding-inline: 0.75rem;
+  border-style: dashed;
+  font-size: 0.76rem;
 }
 
 /* ─── search row ─────────────────────────────────────────────── */
@@ -683,6 +733,42 @@ async function openDetail(p) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.side-sub-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: -0.05rem 0 0.25rem 1.4rem;
+  padding-left: 0.45rem;
+  border-left: 2px solid var(--app-blue-line, #c7e7fa);
+}
+
+.side-sub-tab {
+  width: 100%;
+  min-height: 1.8rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--p-text-color-secondary);
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-sub-tab:hover {
+  background: var(--app-blue-soft, #eaf7ff);
+  color: var(--p-primary-color);
+}
+
+.side-sub-tab.active {
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--p-primary-color);
 }
 
 /* ─── product area ───────────────────────────────────────────── */

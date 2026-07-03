@@ -167,6 +167,8 @@ router.get("/getProductList", async (req, res) => {
     cust_code: strCustCode = "",
     search: strSearch = "",
     category: strCategory = "",
+    level_1: strLevel1 = "",
+    level_2: strLevel2 = "",
     offset: strOffset = "0",
     premium: strPremium = "",
     ispromotion: strPromotion = "",
@@ -203,6 +205,16 @@ router.get("/getProductList", async (req, res) => {
 
     if (strCategory && strCategory.trim()) {
       whereFinal += ` AND b.item_category='${strCategory.replace(/'/g, "''")}'`;
+    }
+    if (strLevel1 && strLevel1.trim()) {
+      const level1 = strLevel1.trim().replace(/'/g, "''");
+      const level2 = String(strLevel2 || "").trim().replace(/'/g, "''");
+      whereFinal += ` AND EXISTS (SELECT 1 FROM ic_inventory_level il WHERE il.ic_code = b.code AND il.level_1='${level1}'`;
+      if (level2) whereFinal += ` AND il.level_2='${level2}'`;
+      whereFinal += `)`;
+    } else if (strLevel2 && strLevel2.trim()) {
+      const level2 = strLevel2.trim().replace(/'/g, "''");
+      whereFinal += ` AND EXISTS (SELECT 1 FROM ic_inventory_level il WHERE il.ic_code = b.code AND il.level_2='${level2}')`;
     }
     if (strPremium === "1") whereFinal += ` AND c.is_premium='1'`;
     if (strProductSet === "1") whereFinal += ` AND b.item_type='3'`;
@@ -879,10 +891,42 @@ router.get("/getProductPrice", async (req, res) => {
 router.get("/getCategoryList", async (req, res) => {
   const resp = { success: false };
   try {
-    const result = await query("SELECT code, name_1 FROM ic_category", []);
+    const result = await query("SELECT code, name_1 FROM ic_category WHERE TRIM(COALESCE(name_2,'')) = '1'", []);
     const data = result.rows.map((r) => ({ code: r.code, name: r.name_1 }));
     resp.success = true;
     resp.data = data;
+    return res.json(resp);
+  } catch (ex) {
+    return res.status(400).json({ ERROR: ex.message });
+  }
+});
+
+// GET /service/v1/getProductLevelList
+// ดึงหมวดสินค้าแบบเมนูอาหารจาก ic_inventory_level: level_1 / level_2
+router.get("/getProductLevelList", async (req, res) => {
+  const resp = { success: false };
+  try {
+    const result = await query(
+      `SELECT DISTINCT level_1, level_2
+       FROM ic_inventory_level
+       WHERE LENGTH(COALESCE(level_1,'')) > 0
+       ORDER BY level_1, level_2`,
+      [],
+    );
+
+    const levelMap = {};
+    for (const row of result.rows) {
+      const level1 = String(row.level_1 || "").trim();
+      const level2 = String(row.level_2 || "").trim();
+      if (!level1) continue;
+      if (!levelMap[level1]) levelMap[level1] = { level_1: level1, level_2_list: [] };
+      if (level2 && !levelMap[level1].level_2_list.includes(level2)) {
+        levelMap[level1].level_2_list.push(level2);
+      }
+    }
+
+    resp.success = true;
+    resp.data = Object.values(levelMap);
     return res.json(resp);
   } catch (ex) {
     return res.status(400).json({ ERROR: ex.message });
@@ -1336,12 +1380,14 @@ router.get("/getInventoryBalance", async (req, res) => {
 // ========== MASTER DATA DROPDOWNS ==========
 
 // helper ลด code ซ้ำสำหรับ master data ที่มี search filter
-function makeMasterListRoute(tableName, extraFields = "") {
+function makeMasterListRoute(tableName, extraFields = "", extraWhere = "") {
   return async (req, res) => {
     const s = (req.query.search || "").trim();
     const like = `%${s}%`;
     try {
-      const result = await query(`SELECT code, name_1${extraFields} FROM ${tableName}` + ` WHERE ($1 = '' OR code ILIKE $2 OR name_1 ILIKE $2)` + ` ORDER BY code`, [s, like]);
+      const whereParts = [`($1 = '' OR code ILIKE $2 OR name_1 ILIKE $2)`];
+      if (extraWhere) whereParts.unshift(`(${extraWhere})`);
+      const result = await query(`SELECT code, name_1${extraFields} FROM ${tableName}` + ` WHERE ${whereParts.join(" AND ")}` + ` ORDER BY code`, [s, like]);
       return res.json({ success: true, data: result.rows });
     } catch (ex) {
       console.error(`${tableName} list error:`, ex.message);
@@ -1359,7 +1405,7 @@ router.get("/getProductGroupSub2List", makeMasterListRoute("ic_group_sub2"));
 // GET /service/v1/getProductBrandList
 router.get("/getProductBrandList", makeMasterListRoute("ic_brand"));
 // GET /service/v1/getProductCategoryList
-router.get("/getProductCategoryList", makeMasterListRoute("ic_category"));
+router.get("/getProductCategoryList", makeMasterListRoute("ic_category", "", "TRIM(COALESCE(name_2,'')) = '1'"));
 // GET /service/v1/getProductDesignList
 router.get("/getProductDesignList", makeMasterListRoute("ic_design"));
 // GET /service/v1/getProductModelList

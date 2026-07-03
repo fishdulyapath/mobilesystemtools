@@ -26,9 +26,16 @@ export async function getCategoryList() {
   return data.data || []
 }
 
+export async function getProductLevelList() {
+  const { data } = await api.get('/getProductLevelList')
+  return data.data || []
+}
+
 export async function getProductList({
   cust_code = '',
   category = '',
+  level_1 = '',
+  level_2 = '',
   search = '',
   isstock = '',
   ispromotion = '',
@@ -38,7 +45,7 @@ export async function getProductList({
   limit = 30,
 } = {}) {
   const { data } = await api.get('/getProductList', {
-    params: { cust_code, category, search, isstock, ispromotion, exclude_hold_sale, exclude_hold_purchase, offset, limit },
+    params: { cust_code, category, level_1, level_2, search, isstock, ispromotion, exclude_hold_sale, exclude_hold_purchase, offset, limit },
   })
   return data.data || []
 }
