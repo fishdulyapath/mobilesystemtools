@@ -7,7 +7,7 @@ import Message from 'primevue/message'
 import { useToast } from 'primevue/usetoast'
 import api from '@/services/api'
 import { getEmployeePermissions, getPermissionList, setEmployeePermissions } from '@/services/permissionService'
-import { PERMISSIONS } from '@/utils/permissions'
+import { getEnabledPermissionGroups, getEnabledPermissionKeys } from '@/utils/appScreens'
 
 const toast = useToast()
 
@@ -23,51 +23,24 @@ const errorMsg = ref('')
 let searchTimer = null
 let suppressEmployeeSearch = false
 
-const activePermissionGroups = [
-  {
-    key: 'sell',
-    title: 'ตะกร้าสินค้า',
-    icon: 'pi pi-shopping-cart',
-    keys: [PERMISSIONS.sellView],
-  },
-  {
-    key: 'history',
-    title: 'ประวัติ',
-    icon: 'pi pi-history',
-    keys: [PERMISSIONS.salesCashView, PERMISSIONS.salesCreditView],
-  },
-  {
-    key: 'inventory',
-    title: 'จัดการคลัง',
-    icon: 'pi pi-box',
-    keys: [PERMISSIONS.inventoryView, PERMISSIONS.inventoryAdjustStock],
-  },
-  {
-    key: 'permission',
-    title: 'กำหนดสิทธิ์',
-    icon: 'pi pi-lock',
-    keys: [PERMISSIONS.permissionManage],
-  },
-]
-
-const activePermissionKeySet = new Set(activePermissionGroups.flatMap((group) => group.keys))
-const activePermissionGroupByKey = new Map(
-  activePermissionGroups.flatMap((group) => group.keys.map((key) => [key, group.key])),
-)
+const activePermissionGroups = getEnabledPermissionGroups()
+const activePermissionKeySet = new Set(getEnabledPermissionKeys())
 
 const permissionGroups = computed(() => {
-  const groups = activePermissionGroups.map((group) => ({
-    key: group.key,
-    title: group.title,
-    icon: group.icon,
-    items: [],
-  }))
-  const byKey = Object.fromEntries(groups.map((g) => [g.key, g]))
-  for (const item of permissionList.value) {
-    const groupKey = activePermissionGroupByKey.get(item.key)
-    if (byKey[groupKey]) byKey[groupKey].items.push(item)
-  }
-  return groups.filter((group) => group.items.length > 0)
+  const permissionsByKey = new Map(permissionList.value.map((item) => [item.key, item]))
+  return activePermissionGroups
+    .map((group) => ({
+      ...group,
+      screens: group.items
+        .map((screen) => ({
+          ...screen,
+          items: screen.permissionKeys
+            .map((key) => permissionsByKey.get(key))
+            .filter(Boolean),
+        }))
+        .filter((screen) => screen.items.length > 0),
+    }))
+    .filter((group) => group.screens.length > 0)
 })
 
 function filterActivePermissions(keys) {
@@ -122,11 +95,12 @@ async function loadEmployeePermissions() {
 }
 
 function isGroupChecked(group) {
-  return group.items.every((item) => checked.value.includes(item.key))
+  const keys = group.screens.flatMap((screen) => screen.items.map((item) => item.key))
+  return keys.length > 0 && keys.every((key) => checked.value.includes(key))
 }
 
 function toggleGroup(group) {
-  const keys = group.items.map((item) => item.key)
+  const keys = group.screens.flatMap((screen) => screen.items.map((item) => item.key))
   if (isGroupChecked(group)) {
     checked.value = checked.value.filter((key) => !keys.includes(key))
   } else {
@@ -210,10 +184,16 @@ onMounted(async () => {
             @click="toggleGroup(group)"
           />
         </div>
-        <label v-for="item in group.items" :key="item.key" class="permission-row">
-          <Checkbox v-model="checked" :input-id="item.key" :value="item.key" />
-          <span>{{ item.label }}</span>
-        </label>
+        <div v-for="screen in group.screens" :key="screen.key" class="permission-screen">
+          <div class="permission-screen-title">
+            <i :class="screen.icon" />
+            <span>{{ screen.title }}</span>
+          </div>
+          <label v-for="item in screen.items" :key="item.key" class="permission-row">
+            <Checkbox v-model="checked" :input-id="item.key" :value="item.key" />
+            <span>{{ item.label }}</span>
+          </label>
+        </div>
       </section>
     </div>
   </div>
@@ -343,6 +323,26 @@ onMounted(async () => {
   gap: 0.5rem;
   font-weight: 700;
   color: var(--app-blue-ink);
+}
+
+.permission-screen {
+  padding: 0.25rem 0 0.5rem;
+}
+
+.permission-screen + .permission-screen {
+  border-top: 1px solid var(--app-blue-line);
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+}
+
+.permission-screen-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #49718e;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
 }
 
 .permission-row {

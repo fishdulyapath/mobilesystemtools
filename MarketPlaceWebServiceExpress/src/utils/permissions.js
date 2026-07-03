@@ -1,4 +1,7 @@
 const PERMISSIONS = [
+  { key: 'dashboard.view', label: 'แดชบอร์ด: เข้าหน้าจอ' },
+  { key: 'sales.reserve_order_history.view', label: 'ประวัติใบสั่งซื้อ-สั่งจอง: เข้าหน้าจอ' },
+  { key: 'sales.sale_order_history.view', label: 'ประวัติใบสั่งขาย: เข้าหน้าจอ' },
   { key: 'permission.manage', label: 'กำหนดสิทธิ์ผู้ใช้' },
   { key: 'dashboard.sold_out_report', label: 'แดชบอร์ด: ดูรายงานสินค้าขายหมด' },
   { key: 'dashboard.monthly_summary', label: 'แดชบอร์ด: สรุปยอดประจำเดือน' },

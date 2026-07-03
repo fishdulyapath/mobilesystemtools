@@ -1,5 +1,6 @@
 export const PERMISSIONS = {
   permissionManage: 'permission.manage',
+  dashboardView: 'dashboard.view',
   dashboardSoldOutReport: 'dashboard.sold_out_report',
   dashboardMonthlySummary: 'dashboard.monthly_summary',
   sellView: 'sell.view',
@@ -7,6 +8,8 @@ export const PERMISSIONS = {
   inventoryAdjustStock: 'inventory.adjust_stock',
   salesCashView: 'sales.cash.view',
   salesCreditView: 'sales.credit.view',
+  salesReserveOrderHistoryView: 'sales.reserve_order_history.view',
+  salesSaleOrderHistoryView: 'sales.sale_order_history.view',
   salesProductHistoryView: 'sales.product_history.view',
   salesReturnView: 'sales.return.view',
   salesReturnCreate: 'sales.return.create',

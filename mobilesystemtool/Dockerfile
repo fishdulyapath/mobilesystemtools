@@ -4,9 +4,11 @@ WORKDIR /app
 ARG VITE_API_BASE_URL=/mobiletoolsservice/service/v1
 ARG VITE_BASE_PATH=/mobiletools/
 ARG VITE_TIGER_MOCK=false
+ARG VITE_ENABLED_SCREENS=sell,sales-history,reserve-order-history,sale-order-history,inventory,permissions
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_BASE_PATH=$VITE_BASE_PATH
 ENV VITE_TIGER_MOCK=$VITE_TIGER_MOCK
+ENV VITE_ENABLED_SCREENS=$VITE_ENABLED_SCREENS
 COPY package*.json ./
 RUN npm ci
 COPY . .

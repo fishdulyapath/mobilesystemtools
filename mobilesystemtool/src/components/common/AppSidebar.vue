@@ -3,94 +3,21 @@ import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { usePosStore } from "@/stores/pos";
-import { PERMISSIONS } from "@/utils/permissions";
+import { getEnabledMenuGroups } from "@/utils/appScreens";
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 const posStore = usePosStore();
 
-const menuGroups = [
-  {
-    title: "ภาพรวม",
-    items: [
-      { label: "แดชบอร์ด", icon: "pi pi-home", to: "/dashboard" },
-    ],
-  },
-  {
-    title: "ธุรกรรม",
-    items: [
-      { label: "ตะกร้าสินค้า", icon: "pi pi-shopping-cart", to: "/sell", permission: PERMISSIONS.sellView },
-      { label: "ซื้อ/ตั้งหนี้", icon: "pi pi-file-import", to: "/purchase/pu", base: "/purchase/pu", permission: PERMISSIONS.purchasePuView },
-      { label: "รับคืนสินค้า/ลดหนี้", icon: "pi pi-undo", to: "/sales/return", permission: PERMISSIONS.salesReturnView },
-      { label: "รับเงินล่วงหน้า", icon: "pi pi-wallet", to: "/sales/advance-payment", permission: PERMISSIONS.salesAdvancePaymentView },
-      { label: "ใบวางบิล (ลูกหนี้)", icon: "pi pi-file-check", to: "/sales/ar-billing", permission: PERMISSIONS.salesArBillingView },
-      { label: "รับชำระหนี้/ใบเสร็จ", icon: "pi pi-receipt", to: "/sales/ar-debt-payment", permission: PERMISSIONS.salesArDebtPaymentView },
-      { label: "ค่าใช้จ่ายอื่นๆ", icon: "pi pi-receipt", to: "/cash/other-expense", permission: PERMISSIONS.cashOtherExpenseCreate },
-    ],
-  },
-  {
-    title: "ประวัติ / รายงาน",
-    items: [
-      { label: "ประวัติขายเงินสด", icon: "pi pi-money-bill", to: "/sales-history/cash", permission: PERMISSIONS.salesCashView },
-      { label: "ประวัติขายเงินเชื่อ", icon: "pi pi-credit-card", to: "/sales-history/credit", permission: PERMISSIONS.salesCreditView },
-      { label: "ประวัติขายตามสินค้า", icon: "pi pi-list", to: "/sales-history/by-product", permission: PERMISSIONS.salesProductHistoryView },
-      { label: "สินค้าขายหมด", icon: "pi pi-exclamation-circle", to: "/sold-out", permission: PERMISSIONS.soldOutView },
-      { label: "ดูสต๊อกสินค้าเพื่อสั่งซื้อ", icon: "pi pi-list-check", to: "/purchase/stock-reorder", permission: PERMISSIONS.purchaseStockReorderView },
-      { label: "ประวัติรับเงินล่วงหน้า", icon: "pi pi-history", to: "/sales/advance-payment/history", permission: PERMISSIONS.salesAdvancePaymentHistoryView },
-      { label: "ประวัติใบวางบิล", icon: "pi pi-list", to: "/sales/ar-billing/history", permission: PERMISSIONS.salesArBillingView },
-      { label: "ประวัติรับชำระหนี้", icon: "pi pi-history", to: "/sales/ar-debt-payment/history", permission: PERMISSIONS.salesArDebtPaymentHistoryView },
-      { label: "ประวัติค่าใช้จ่ายอื่นๆ", icon: "pi pi-receipt", to: "/cash/other-expense/history", permission: PERMISSIONS.cashOtherExpenseView },
-    ],
-  },
-  {
-    title: "สินค้า / คลัง",
-    items: [
-      { label: "คลังสินค้า", icon: "pi pi-box", to: "/inventory", permission: PERMISSIONS.inventoryView },
-      { label: "จัดการสินค้า", icon: "pi pi-tag", to: "/products", base: "/products", permission: PERMISSIONS.productView },
-    ],
-  },
-  {
-    title: "ระบบ",
-    items: [
-      { label: "กำหนดสิทธิ์", icon: "pi pi-lock", to: "/permissions", permission: PERMISSIONS.permissionManage },
-    ],
-  },
-];
-
-const activeMenuPaths = new Set([
-  "/sell",
-  "/sales-history",
-  "/sales-history/reserve-order",
-  "/sales-history/sale-order",
-  "/inventory",
-  "/permissions",
-]);
-
-const menuLabelOverrides = {
-  "/inventory": "จัดการคลัง",
-};
-
 const visibleMenuGroups = computed(() =>
-  menuGroups
-    .map((group) => normalizeMenuGroup(group, group.items
-      .filter((item) => activeMenuPaths.has(item.to))
-      .filter(canAccessMenuItem)
-      .map((item) => ({
-        ...item,
-        label: menuLabelOverrides[item.to] || item.label,
-      })),
-    ))
+  getEnabledMenuGroups()
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(canAccessMenuItem),
+    }))
     .filter((group) => group.items.length > 0),
 );
-
-function normalizeMenuGroup(group, items) {
-  const firstPath = items[0]?.to || "";
-  if (firstPath === "/sell") return { ...group, title: "ตะกร้าสินค้า", items };
-  if (firstPath.startsWith("/sales-history")) return { ...group, title: "ประวัติ", items };
-  if (firstPath === "/inventory") return { ...group, title: "จัดการคลัง", items };
-  return { ...group, items };
-}
 
 function canAccessMenuItem(item) {
   if (item.anyPermissions) return item.anyPermissions.some((permission) => authStore.hasPermission(permission));
