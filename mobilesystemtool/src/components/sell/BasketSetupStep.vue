@@ -8,7 +8,7 @@ import { useToast } from "primevue/usetoast";
 import { getCustomerCredit, getCustomerList } from "@/services/sellService";
 import { getSaleDocFormatList } from "@/services/basketService";
 import { useAuthStore } from "@/stores/auth";
-import { getEnabledSaleDocumentTypes, getSaleDocumentType, getSaleDocumentTypeFromBasket } from "@/utils/saleDocumentTypes";
+import { getEnabledSaleDocumentTypes } from "@/utils/saleDocumentTypes";
 import api from "@/services/api";
 
 const toast = useToast();
@@ -20,15 +20,17 @@ const emit = defineEmits(["done", "back", "clear"]);
 
 const authStore = useAuthStore();
 
-const documentTypes = getEnabledSaleDocumentTypes();
+const enabledDocumentTypes = getEnabledSaleDocumentTypes();
+const documentTypes = computed(() => enabledDocumentTypes.filter((type) => authStore.hasPermission(type.permission)));
+const hasAllowedDocumentTypes = computed(() => documentTypes.value.length > 0);
+
 function resolveInitialDocumentType() {
-  const basketDocumentType = getSaleDocumentTypeFromBasket(props.basket);
-  return documentTypes.find((type) => type.key === basketDocumentType.key) || documentTypes[0] || getSaleDocumentType("reserve_order");
+  return documentTypes.value[0] || null;
 }
 
-const documentTypeKey = ref(resolveInitialDocumentType().key);
-const selectedDocumentType = computed(() => getSaleDocumentType(documentTypeKey.value));
-const documentTypeOptions = computed(() => documentTypes.map((type) => ({
+const documentTypeKey = ref(resolveInitialDocumentType()?.key || "");
+const selectedDocumentType = computed(() => documentTypes.value.find((type) => type.key === documentTypeKey.value) || documentTypes.value[0] || null);
+const documentTypeOptions = computed(() => documentTypes.value.map((type) => ({
   label: type.label,
   value: type.key,
   icon: type.icon,
@@ -67,6 +69,11 @@ function setDocFormatCode(code) {
 }
 
 async function loadDocFormats(preferredCode = "") {
+  if (!selectedDocumentType.value) {
+    docFormats.value = [];
+    docFormatCode.value = "";
+    return;
+  }
   docFormatLoading.value = true;
   try {
     docFormats.value = await getSaleDocFormatList({ screen_code: selectedDocumentType.value.screenCode });
@@ -85,7 +92,7 @@ async function loadDocFormats(preferredCode = "") {
 }
 
 watch(documentTypeKey, async () => {
-  await loadDocFormats(selectedDocumentType.value.docFormatCode);
+  await loadDocFormats(selectedDocumentType.value?.docFormatCode);
 });
 
 watch(custSearch, (val) => {
@@ -226,8 +233,8 @@ const isEditMode = props.basket.status === "active";
 
 onMounted(async () => {
   const initialDocumentType = resolveInitialDocumentType();
-  documentTypeKey.value = initialDocumentType.key;
-  await loadDocFormats(props.basket.doc_format_code || initialDocumentType.docFormatCode);
+  documentTypeKey.value = initialDocumentType?.key || "";
+  await loadDocFormats(props.basket.doc_format_code || initialDocumentType?.docFormatCode);
 
   if (isEditMode) {
     custCode.value = props.basket.cust_code || "";
@@ -255,6 +262,14 @@ onMounted(async () => {
 });
 
 function confirm() {
+  if (!selectedDocumentType.value) {
+    toast.add({
+      severity: "warn",
+      summary: "ไม่มีสิทธิ์ใช้งานประเภทเอกสารตะกร้า",
+      life: 2500,
+    });
+    return;
+  }
   if (!creditReady.value) {
     toast.add({
       severity: "warn",
@@ -346,6 +361,9 @@ function confirm() {
             <span>{{ option.label }}</span>
           </template>
         </SelectButton>
+        <div v-if="!hasAllowedDocumentTypes" class="permission-warning">
+          ไม่มีสิทธิ์ใช้งานประเภทเอกสารตะกร้าที่เปิดไว้
+        </div>
       </section>
 
 
@@ -417,7 +435,7 @@ function confirm() {
         </div>
       </section>
       <div style="margin-top: 1rem">
-        <Button label="ยืนยัน" icon="pi pi-check" class="w-full confirm-btn" size="large" :disabled="!creditReady" @click="confirm" />
+        <Button label="ยืนยัน" icon="pi pi-check" class="w-full confirm-btn" size="large" :disabled="!creditReady || !hasAllowedDocumentTypes" @click="confirm" />
       </div>
 
       <div v-if="isEditMode" class="clear-section">
@@ -590,6 +608,16 @@ function confirm() {
 
 .document-type-select :deep(.p-togglebutton-content) {
   gap: 0.35rem;
+}
+
+.permission-warning {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .credit-panel {

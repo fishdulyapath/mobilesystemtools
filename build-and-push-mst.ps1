@@ -2,9 +2,10 @@ param(
     [switch]$Mock,
     [string]$Registry = "minorsoft",
     [string]$Tag = "latest",
-    [string]$EnabledScreens = "all",
+    [string]$EnabledScreens = "sell,sales-history,reserve-order-history,sale-order-history,inventory,permissions",
     [string]$SaleDocumentTypes = "reserve_order,sale_order,sale"
 )
+
 
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot

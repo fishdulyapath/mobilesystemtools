@@ -1,4 +1,7 @@
 const PERMISSIONS = [
+  { key: 'sell.document.reserve_order', label: 'ตะกร้าสินค้า: ใช้ประเภทสั่งซื้อ-สั่งจอง' },
+  { key: 'sell.document.sale_order', label: 'ตะกร้าสินค้า: ใช้ประเภทสั่งขาย' },
+  { key: 'sell.document.sale', label: 'ตะกร้าสินค้า: ใช้ประเภทขาย' },
   { key: 'dashboard.view', label: 'แดชบอร์ด: เข้าหน้าจอ' },
   { key: 'sales.reserve_order_history.view', label: 'ประวัติใบสั่งซื้อ-สั่งจอง: เข้าหน้าจอ' },
   { key: 'sales.sale_order_history.view', label: 'ประวัติใบสั่งขาย: เข้าหน้าจอ' },

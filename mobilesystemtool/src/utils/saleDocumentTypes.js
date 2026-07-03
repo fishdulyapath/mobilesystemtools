@@ -1,3 +1,5 @@
+import { PERMISSIONS } from '@/utils/permissions'
+
 const DOCUMENT_TYPE_MAP = {
   sale: {
     key: 'sale',
@@ -8,6 +10,7 @@ const DOCUMENT_TYPE_MAP = {
     docFormatCode: '',
     requiresStock: true,
     requiresPayment: true,
+    permission: PERMISSIONS.sellSaleDocument,
   },
   sale_order: {
     key: 'sale_order',
@@ -18,6 +21,7 @@ const DOCUMENT_TYPE_MAP = {
     docFormatCode: '',
     requiresStock: true,
     requiresPayment: false,
+    permission: PERMISSIONS.sellSaleOrderDocument,
   },
   reserve_order: {
     key: 'reserve_order',
@@ -28,6 +32,7 @@ const DOCUMENT_TYPE_MAP = {
     docFormatCode: '',
     requiresStock: false,
     requiresPayment: false,
+    permission: PERMISSIONS.sellReserveOrderDocument,
   },
 }
 
@@ -70,4 +75,10 @@ export function getEnabledSaleDocumentTypes() {
     .sort((a, b) => DOCUMENT_TYPE_ORDER.indexOf(a.key) - DOCUMENT_TYPE_ORDER.indexOf(b.key))
 
   return types.length ? types : [DEFAULT_DOCUMENT_TYPE]
+}
+
+export function getEnabledSaleDocumentTypePermissions() {
+  return getEnabledSaleDocumentTypes()
+    .map((type) => type.permission)
+    .filter(Boolean)
 }

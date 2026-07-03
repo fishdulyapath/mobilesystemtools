@@ -1,4 +1,5 @@
 import { PERMISSIONS } from '@/utils/permissions'
+import { getEnabledSaleDocumentTypePermissions } from '@/utils/saleDocumentTypes'
 
 export const SCREEN_IDS = {
   dashboard: 'dashboard',
@@ -161,6 +162,7 @@ export const APP_MENU_GROUPS = [
         to: '/sell',
         routeName: 'Sell',
         permission: PERMISSIONS.sellView,
+        permissionKeys: [PERMISSIONS.sellView, ...getEnabledSaleDocumentTypePermissions()],
       },
       {
         id: SCREEN_IDS.purchasePu,
