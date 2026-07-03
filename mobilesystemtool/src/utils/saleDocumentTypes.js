@@ -39,10 +39,12 @@ const DOCUMENT_TYPE_BY_SCREEN_CODE = {
   BS: DOCUMENT_TYPE_MAP.reserve_order,
 }
 
-const DEFAULT_ENABLED_TYPES = 'sale,sale_order,reserve_order'
+const DOCUMENT_TYPE_ORDER = ['reserve_order', 'sale_order', 'sale']
+const DEFAULT_ENABLED_TYPES = 'reserve_order,sale_order,sale'
+const DEFAULT_DOCUMENT_TYPE = DOCUMENT_TYPE_MAP.reserve_order
 
 export function getSaleDocumentType(key) {
-  return DOCUMENT_TYPE_MAP[key] || DOCUMENT_TYPE_MAP.sale
+  return DOCUMENT_TYPE_MAP[key] || DEFAULT_DOCUMENT_TYPE
 }
 
 export function getSaleDocumentTypeFromBasket(basket = {}) {
@@ -53,7 +55,7 @@ export function getSaleDocumentTypeFromBasket(basket = {}) {
   if (DOCUMENT_TYPE_BY_SCREEN_CODE[screenCode]) return DOCUMENT_TYPE_BY_SCREEN_CODE[screenCode]
 
   const docFormatCode = String(basket.doc_format_code || '').trim().toUpperCase()
-  return Object.values(DOCUMENT_TYPE_MAP).find((type) => type.docFormatCode && type.docFormatCode === docFormatCode) || DOCUMENT_TYPE_MAP.sale
+  return Object.values(DOCUMENT_TYPE_MAP).find((type) => type.docFormatCode && type.docFormatCode === docFormatCode) || DEFAULT_DOCUMENT_TYPE
 }
 
 export function getEnabledSaleDocumentTypes() {
@@ -65,6 +67,7 @@ export function getEnabledSaleDocumentTypes() {
   const types = keys
     .map((key) => DOCUMENT_TYPE_MAP[key])
     .filter(Boolean)
+    .sort((a, b) => DOCUMENT_TYPE_ORDER.indexOf(a.key) - DOCUMENT_TYPE_ORDER.indexOf(b.key))
 
-  return types.length ? types : [DOCUMENT_TYPE_MAP.sale]
+  return types.length ? types : [DEFAULT_DOCUMENT_TYPE]
 }

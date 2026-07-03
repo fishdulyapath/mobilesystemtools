@@ -2,7 +2,8 @@ param(
     [switch]$Mock,
     [string]$Registry = "minorsoft",
     [string]$Tag = "latest",
-    [string]$EnabledScreens = "all"
+    [string]$EnabledScreens = "all",
+    [string]$SaleDocumentTypes = "reserve_order,sale_order,sale"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +36,7 @@ docker build `
   --build-arg "VITE_BASE_PATH=/mobiletools/" `
   --build-arg "VITE_TIGER_MOCK=$mockValue" `
   --build-arg "VITE_ENABLED_SCREENS=$EnabledScreens" `
+  --build-arg "VITE_SALE_DOCUMENT_TYPES=$SaleDocumentTypes" `
   -t $frontendImage `
   $frontendPath
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -45,4 +47,4 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 docker push $frontendImage
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "==> Done. Backend=$serviceImage Frontend=$frontendImage MOCK=$mockValue EnabledScreens=$EnabledScreens" -ForegroundColor Green
+Write-Host "==> Done. Backend=$serviceImage Frontend=$frontendImage MOCK=$mockValue EnabledScreens=$EnabledScreens SaleDocumentTypes=$SaleDocumentTypes" -ForegroundColor Green

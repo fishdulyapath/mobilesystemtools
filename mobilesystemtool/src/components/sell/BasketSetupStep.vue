@@ -21,7 +21,12 @@ const emit = defineEmits(["done", "back", "clear"]);
 const authStore = useAuthStore();
 
 const documentTypes = getEnabledSaleDocumentTypes();
-const documentTypeKey = ref(getSaleDocumentTypeFromBasket(props.basket).key);
+function resolveInitialDocumentType() {
+  const basketDocumentType = getSaleDocumentTypeFromBasket(props.basket);
+  return documentTypes.find((type) => type.key === basketDocumentType.key) || documentTypes[0] || getSaleDocumentType("reserve_order");
+}
+
+const documentTypeKey = ref(resolveInitialDocumentType().key);
 const selectedDocumentType = computed(() => getSaleDocumentType(documentTypeKey.value));
 const documentTypeOptions = computed(() => documentTypes.map((type) => ({
   label: type.label,
@@ -220,7 +225,7 @@ function selectEmployee(e) {
 const isEditMode = props.basket.status === "active";
 
 onMounted(async () => {
-  const initialDocumentType = getSaleDocumentTypeFromBasket(props.basket);
+  const initialDocumentType = resolveInitialDocumentType();
   documentTypeKey.value = initialDocumentType.key;
   await loadDocFormats(props.basket.doc_format_code || initialDocumentType.docFormatCode);
 
