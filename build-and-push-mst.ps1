@@ -2,7 +2,7 @@ param(
     [switch]$Mock,
     [string]$Registry = "minorsoft",
     [string]$Tag = "latest",
-    [string]$EnabledScreens = "sell,sales-history,reserve-order-history,sale-order-history,inventory,permissions",
+    [string]$EnabledScreens = "dashboard,sell,sales-history,reserve-order-history,sale-order-history,inventory,permissions",
     [string]$SaleDocumentTypes = "reserve_order,sale_order,sale"
 )
 
